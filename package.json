@@ -1,28 +1,26 @@
 {
-  "name": "uploads",
+  "name": "tasket-fullstack",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Full-stack Task Management System",
+  "main": "tasket-backend/server.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "postinstall": "cd tasket-backend && npm install && cd ../tasket && npm install",
+    "build": "cd tasket && npm run build",
+    "start": "cd tasket-backend && npm start",
+    "dev": "cd tasket-backend && npm run dev",
+    "seed": "cd tasket-backend && npm run seed:prod"
   },
-  "keywords": [],
+  "keywords": [
+    "task",
+    "management",
+    "fullstack",
+    "express",
+    "react"
+  ],
   "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "bcryptjs": "^3.0.2",
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.1",
-    "express": "^5.1.0",
-    "express-rate-limit": "^8.0.1",
-    "express-validator": "^7.2.1",
-    "helmet": "^8.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.1",
-    "pg": "^8.16.3",
-    "sequelize": "^6.37.7"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.10"
-  }
+  "license": "ISC"
 }

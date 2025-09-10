@@ -1,5 +1,5 @@
 [build]
-dockerfilePath = "Dockerfile.frontend"
+dockerfile = "Dockerfile.frontend"
 
 [deploy]
 numReplicas = 1

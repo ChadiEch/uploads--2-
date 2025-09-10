@@ -1,6 +1,5 @@
 [build]
-builder = "DOCKER_COMPOSE"
-dockerfilePath = "railway.docker-compose.yml"
+dockerfile = "railway.docker-compose.yml"
 
 [deploy]
 numReplicas = 1

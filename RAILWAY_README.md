@@ -14,6 +14,7 @@ Uses the `railway.toml` and `railway.docker-compose.yml` files at the root of th
 **Cons:**
 - Less flexible scaling options
 - Both services share the same deployment lifecycle
+- May require provisioning a database plugin separately on Railway
 
 ## 2. Separate Service Deployment
 

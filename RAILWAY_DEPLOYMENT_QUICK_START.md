@@ -8,10 +8,12 @@ This guide provides a quick way to deploy the Tasket application to Railway usin
 2. Connect your GitHub repository
 3. Railway will automatically detect the `railway.toml` file and deploy using Docker Compose
 4. Add the required environment variables:
-   - `JWT_SECRET` - A secure random string
+   - `JWT_SECRET` - A secure random string (at least 32 characters)
    - `POSTGRES_DB` - Database name (optional, defaults to "tasket")
    - `POSTGRES_USER` - Database user (optional, defaults to "postgres")
    - `POSTGRES_PASSWORD` - Database password (optional, defaults to "postgres")
+
+Note: Railway may require you to provision a database plugin separately rather than using the one in the docker-compose file.
 
 ## Option 2: Deploy Services Separately
 

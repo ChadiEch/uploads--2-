@@ -13,6 +13,20 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
     },
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/uploads': {
+        target: 'http://localhost:5002',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  },
   test: {
     globals: true,
     environment: 'jsdom',

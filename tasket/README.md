@@ -1,252 +1,353 @@
-# TaskFlow Frontend - Real-time Task Management System
+# Tasket - Employee Task Management System
 
-A modern, real-time task management system built with React, Vite, and WebSocket integration. Features comprehensive testing, live updates, and collaborative task management.
+Tasket is a comprehensive employee task management system built with React, Node.js, and PostgreSQL. It provides features for managing departments, employees, and tasks with real-time updates.
 
-## 🚀 Features
+## Table of Contents
 
-### Core Features
-- **Real-time Collaboration**: Live task updates, notifications, and user presence
-- **Task Management**: Complete CRUD operations with status tracking and priorities
-- **Department Management**: Organize teams and track department performance
-- **Employee Management**: User profiles with role-based permissions
-- **Interactive Dashboard**: Real-time charts and statistics with live data updates
-- **Calendar Integration**: Task scheduling and daily views
-- **Responsive Design**: Mobile-friendly interface with Tailwind CSS
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [Environment Variables](#environment-variables)
+- [Deployment to Railway](#deployment-to-railway)
+  - [Frontend Deployment](#frontend-deployment)
+  - [Backend Deployment](#backend-deployment)
+  - [Database Setup](#database-setup)
+- [Project Details](#project-details)
+  - [Authentication](#authentication)
+  - [Role-Based Access Control](#role-based-access-control)
+  - [Real-Time Features](#real-time-features)
+  - [File Uploads](#file-uploads)
+- [API Documentation](#api-documentation)
+- [Database Schema](#database-schema)
+- [Development](#development)
+- [Testing](#testing)
+- [Contributing](#contributing)
+- [License](#license)
 
-### Real-time Features
-- **Live Task Updates**: See changes instantly across all connected clients
-- **Real-time Notifications**: Toast notifications for task assignments and updates
-- **User Presence**: See who's online in your department
-- **Live Dashboard**: Statistics update automatically as data changes
-- **Collaborative Editing**: Real-time indicators for active users
+## Features
 
-### Testing & Quality
-- **Comprehensive Test Suite**: Unit and integration tests with Vitest
-- **Component Testing**: React Testing Library for UI components
-- **Mocking Support**: Complete mocking setup for external dependencies
-- **Coverage Reports**: Detailed test coverage analysis
+- User authentication (Admin, Manager, Employee roles)
+- Department management
+- Employee management with photo uploads
+- Task management with attachments
+- Calendar view for tasks
+- Real-time updates using WebSockets
+- Role-based access control
+- File upload support for task attachments
+- Responsive design for mobile and desktop
+- Live notifications
 
-## 🛠️ Technology Stack
+## Tech Stack
 
-### Frontend Core
-- **React 18**: Modern React with hooks and concurrent features
-- **Vite**: Fast build tool and development server
-- **TypeScript Support**: Type-safe development environment
+### Frontend
+- React 18
+- Vite
+- Tailwind CSS
+- React Context API for state management
+- Socket.IO Client for real-time communication
 
-### Styling & UI
-- **Tailwind CSS**: Utility-first CSS framework
-- **Material-UI**: Pre-built React components
-- **Recharts**: Beautiful, responsive charts for data visualization
+### Backend
+- Node.js
+- Express.js
+- PostgreSQL
+- Socket.IO for real-time communication
+- Multer for file uploads
+- JWT for authentication
 
-### Real-time Communication
-- **Socket.IO Client**: WebSocket client for real-time features
-- **Event-driven Architecture**: Reactive state management
+### Database
+- PostgreSQL
 
-### Testing Framework
-- **Vitest**: Fast unit testing framework
-- **React Testing Library**: Component testing utilities
-- **Jest DOM**: Custom DOM matchers
-- **MSW (Mock Service Worker)**: API mocking for tests
+### Deployment
+- Railway
 
-### State Management
-- **React Context API**: Global state management
-- **Custom Hooks**: Reusable state logic
-- **WebSocket Context**: Real-time event management
+## Project Structure
 
-## 📦 Installation
+```
+tasket/
+├── backend/
+│   ├── controllers/
+│   ├── middleware/
+│   ├── models/
+│   ├── routes/
+│   ├── utils/
+│   ├── server.js
+│   └── package.json
+├── src/
+│   ├── components/
+│   ├── context/
+│   ├── lib/
+│   ├── App.jsx
+│   └── main.jsx
+├── public/
+├── vite.config.js
+└── package.json
+```
+
+## Getting Started
 
 ### Prerequisites
+
 - Node.js (v16 or higher)
-- npm or pnpm
-- TaskFlow Backend running on port 5000
+- PostgreSQL
+- npm or yarn
+- Railway account (for deployment)
 
-### Setup Steps
+### Installation
 
-1. **Install Dependencies**
-   ```bash
-   cd tasket
-   npm install
-   # or
-   pnpm install
-   ```
-
-2. **Environment Configuration**
-   ```bash
-   # Create environment file if needed
-   cp .env.example .env
-   ```
-
-3. **Start Development Server**
-   ```bash
-   npm run dev
-   # or
-   pnpm dev
-   ```
-
-4. **Access Application**
-   - Frontend: http://localhost:5173
-   - Ensure backend is running on http://localhost:5000
-
-## 🧪 Testing
-
-### Run Tests
+1. Clone the repository:
 ```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
-
-# Run tests with UI
-npm run test:ui
+git clone <repository-url>
+cd tasket
 ```
 
-### Test Structure
-```
-src/test/
-├── setup.js                 # Test environment setup
-├── AuthContext.test.jsx     # Authentication tests
-├── AppContext.test.jsx      # Application state tests
-├── Dashboard.test.jsx       # Dashboard component tests
-└── Login.test.jsx          # Login component tests
-```
-
-### Testing Features
-- **Component Testing**: All major components have comprehensive tests
-- **Context Testing**: State management and WebSocket integration tests
-- **User Interaction Testing**: Form submissions, button clicks, navigation
-- **Mocking**: External APIs, WebSocket connections, and localStorage
-- **Coverage Reports**: Detailed coverage analysis with multiple output formats
-
-## 🔧 Build & Deployment
-
-### Development Build
+2. Install frontend dependencies:
 ```bash
-npm run build
+npm install
 ```
 
-### Production Deployment
-1. Build the application
-2. Deploy dist/ folder to your static hosting service
-3. Configure environment variables for production API endpoints
+3. Navigate to the backend directory and install backend dependencies:
+```bash
+cd backend
+npm install
+cd ..
+```
 
-### Environment Variables
+4. Set up the database:
+```sql
+CREATE DATABASE tasket;
+```
+
+5. Run database migrations (if applicable):
+```bash
+# Follow your database migration process
+```
+
+6. Start the development servers:
+
+Frontend:
+```bash
+npm run dev
+```
+
+Backend (from backend directory):
+```bash
+cd backend
+npm run dev
+```
+
+## Environment Variables
+
+### Frontend (.env)
 ```env
-# API Configuration
-VITE_API_BASE_URL=http://localhost:5000
-VITE_WS_BASE_URL=http://localhost:5000
-
-# Feature Flags
-VITE_ENABLE_REALTIME=true
-VITE_ENABLE_NOTIFICATIONS=true
+VITE_API_BASE_URL=http://localhost:5002/api
+VITE_WS_BASE_URL=http://localhost:5002
 ```
 
-## 🏗️ Project Structure
-
-```
-src/
-├── components/
-│   ├── auth/                # Authentication components
-│   ├── charts/             # Chart components (8 types)
-│   ├── departments/        # Department management
-│   ├── employees/          # Employee management
-│   ├── tasks/              # Task management
-│   ├── Dashboard.jsx       # Real-time dashboard
-│   ├── RealTimeTaskList.jsx # Live task list
-│   ├── NotificationContainer.jsx # Toast notifications
-│   └── ConnectionStatus.jsx # WebSocket status
-├── context/
-│   ├── AuthContext.jsx     # Authentication state
-│   ├── AppContext.jsx      # Application state
-│   └── WebSocketContext.jsx # Real-time communication
-├── lib/
-│   └── api.js              # API client configuration
-├── test/                   # Test files
-└── data/                   # Mock data and constants
+### Backend (.env)
+```env
+PORT=5002
+DATABASE_URL=postgresql://username:password@localhost:5432/tasket
+JWT_SECRET=your_jwt_secret_here
 ```
 
-## 🔄 Real-time Features
+## Deployment to Railway
 
-### WebSocket Integration
-- **Authentication**: JWT-based WebSocket authentication
-- **Room Management**: Department and task-specific rooms
-- **Event Handling**: Task updates, user presence, typing indicators
-- **Reconnection**: Automatic reconnection with exponential backoff
+### Frontend Deployment
 
-### Real-time Events
-- `task_updated`: Live task modifications
-- `task_deleted`: Task removal notifications
-- `task_assigned`: New task assignments
-- `user_presence`: Online/offline status
-- `notification`: System notifications
+1. Create a new Railway project
+2. Connect your GitHub repository
+3. Configure the build settings:
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+   - Install Command: `npm install`
+4. Add environment variables:
+   - `VITE_API_BASE_URL` = `https://your-backend-url.up.railway.app/api`
+   - `VITE_WS_BASE_URL` = `https://your-backend-url.up.railway.app`
 
-## 🎯 Key Components
+### Backend Deployment
 
-### Dashboard
-- **Real-time Statistics**: Live task counts and completion rates
-- **Interactive Charts**: Dynamic data visualization
-- **Live Activity Feed**: Recent task updates and user activity
-- **Performance Metrics**: Department and employee analytics
+1. Create a new Railway service
+2. Connect your GitHub repository
+3. Choose "Deploy from Dockerfile" or configure as a Node.js service
+4. Add environment variables:
+   - `PORT` = `5002`
+   - `DATABASE_URL` = (Railway PostgreSQL connection string)
+   - `JWT_SECRET` = (your secret key)
+5. Configure the start command:
+   - Start Command: `node server.js`
 
-### Task Management
-- **Live Updates**: See changes as they happen
-- **Collaborative Editing**: Multiple users can work simultaneously
-- **Smart Notifications**: Context-aware task alerts
-- **Status Tracking**: Visual indicators for task progress
+### Database Setup
 
-### User Experience
-- **Responsive Design**: Works on all device sizes
-- **Loading States**: Skeleton screens and progress indicators
-- **Error Handling**: Graceful error recovery and user feedback
-- **Accessibility**: ARIA labels and keyboard navigation
+1. Add a PostgreSQL database from Railway services
+2. Railway will automatically provide the DATABASE_URL
+3. Run database migrations:
+   ```bash
+   npm run migrate
+   ```
+   (or however you handle database migrations in your project)
 
-## 🚀 Performance
-
-### Optimization Features
-- **Code Splitting**: Lazy loading for optimal bundle size
-- **Memoization**: React.memo and useMemo for expensive operations
-- **Virtual Scrolling**: Efficient large list rendering
-- **Image Optimization**: Responsive images with proper sizing
-- **WebSocket Pooling**: Efficient connection management
-
-## 🔒 Security
+## Project Details
 
 ### Authentication
-- **JWT Tokens**: Secure authentication with automatic refresh
-- **Protected Routes**: Role-based access control
-- **WebSocket Security**: Authenticated real-time connections
 
-### Data Protection
-- **Input Validation**: Client-side validation with server verification
-- **XSS Prevention**: Sanitized user inputs and outputs
-- **CSRF Protection**: Token-based request validation
+The application uses JWT tokens for authentication:
+- Users log in with email and password
+- Tokens are stored in localStorage
+- Tokens are automatically refreshed
+- Protected routes require authentication
 
-## 📱 Browser Support
+### Role-Based Access Control
 
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
-- Mobile browsers (iOS Safari, Chrome Mobile)
+There are three user roles:
+1. **Admin**: Full access to all features
+2. **Manager**: Department-level access
+3. **Employee**: Personal task access
 
-## 🤝 Contributing
+### Real-Time Features
 
-1. **Fork the repository**
-2. **Create feature branch**: `git checkout -b feature/amazing-feature`
-3. **Run tests**: `npm test`
-4. **Commit changes**: `git commit -m 'Add amazing feature'`
-5. **Push to branch**: `git push origin feature/amazing-feature`
-6. **Open Pull Request**
+- Live task updates using WebSockets
+- Real-time notifications
+- Concurrent user editing indicators
+- Instant UI updates without page refresh
 
-### Development Guidelines
-- Write tests for all new features
-- Follow existing code style and conventions
-- Update documentation for significant changes
-- Ensure all tests pass before submitting PR
+### File Uploads
 
-## 📄 License
+- Employee photos
+- Task attachments (documents, images, links)
+- File validation and storage
+- Proper URL handling for uploaded files
 
-This project is licensed under the MIT License.
+## API Documentation
+
+### Authentication
+- `POST /api/auth/login` - User login
+- `POST /api/auth/register` - User registration
+- `GET /api/auth/profile` - Get user profile
+- `PUT /api/auth/profile` - Update user profile
+
+### Departments
+- `GET /api/departments` - Get all departments
+- `POST /api/departments` - Create department
+- `PUT /api/departments/:id` - Update department
+- `DELETE /api/departments/:id` - Delete department
+
+### Employees
+- `GET /api/employees` - Get all employees
+- `POST /api/employees` - Create employee
+- `PUT /api/employees/:id` - Update employee
+- `DELETE /api/employees/:id` - Delete employee
+
+### Tasks
+- `GET /api/tasks` - Get all tasks
+- `POST /api/tasks` - Create task
+- `PUT /api/tasks/:id` - Update task
+- `DELETE /api/tasks/:id` - Delete task
+
+## Database Schema
+
+```sql
+-- Users table
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  role VARCHAR(50) DEFAULT 'employee',
+  department_id INTEGER REFERENCES departments(id),
+  photo VARCHAR(255),
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Departments table
+CREATE TABLE departments (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  budget DECIMAL(10, 2),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tasks table
+CREATE TABLE tasks (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  due_date DATE,
+  priority VARCHAR(50) DEFAULT 'medium',
+  status VARCHAR(50) DEFAULT 'planned',
+  assigned_to INTEGER REFERENCES users(id),
+  created_by INTEGER REFERENCES users(id),
+  department_id INTEGER REFERENCES departments(id),
+  estimated_hours DECIMAL(5, 2),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Task attachments table
+CREATE TABLE task_attachments (
+  id SERIAL PRIMARY KEY,
+  task_id INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  type VARCHAR(50) NOT NULL,
+  url VARCHAR(500) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## Development
+
+### Running Locally
+
+1. Start the backend server:
+```bash
+cd backend
+npm run dev
+```
+
+2. Start the frontend development server:
+```bash
+npm run dev
+```
+
+### Code Structure
+
+- `/src/components/` - React components organized by feature
+- `/src/context/` - React context providers for global state
+- `/src/lib/` - Utility functions and API clients
+- `/backend/controllers/` - Request handlers
+- `/backend/models/` - Database models
+- `/backend/routes/` - API route definitions
+
+## Testing
+
+Run frontend tests:
+```bash
+npm run test
+```
+
+Run tests with coverage:
+```bash
+npm run test:coverage
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a pull request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+For support, email [your-email] or open an issue in the repository.

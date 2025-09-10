@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useApp } from '../context/AppContext'
 
 const EnhancedCalendar = () => {
-  const { tasks, navigateToDayView, selectedEmployee } = useApp()
+  const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar } = useApp()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState('year') // 'year', 'month', or 'days'
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
@@ -184,6 +184,14 @@ const EnhancedCalendar = () => {
              `${monthNames[selectedMonth]} ${selectedYear}`}
           </h2>
           <div className="flex space-x-1 md:space-x-2">
+            {selectedEmployee && (
+              <button
+                onClick={navigateToCalendar}
+                className="px-2 md:px-3 py-2 text-xs md:text-sm border border-gray-300 rounded-md hover:bg-gray-50 touch-manipulation"
+              >
+                View All Employees
+              </button>
+            )}
             <button
               onClick={goBack}
               disabled={view === 'year'}
@@ -198,7 +206,7 @@ const EnhancedCalendar = () => {
               className="px-2 md:px-3 py-2 text-xs md:text-sm border border-gray-300 rounded-md hover:bg-gray-50 touch-manipulation"
             >
               Today
-            </button>
+              </button>
           </div>
         </div>
 

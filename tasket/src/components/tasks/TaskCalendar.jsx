@@ -11,7 +11,8 @@ const TaskCalendar = () => {
     navigateToDepartmentEmployees,
     navigateToDayView,
     isAdmin,
-    tasks
+    tasks,
+    navigateToCalendar
   } = useApp();
   
   const { subscribeToTaskUpdates, connected } = useWebSocket();
@@ -156,6 +157,16 @@ const TaskCalendar = () => {
           </svg>
         </button>
         <h1 className="text-2xl font-semibold text-gray-800">Tasks for {employee.name}</h1>
+        
+        <button
+          onClick={navigateToCalendar}
+          className="ml-auto text-indigo-600 hover:text-indigo-800 flex items-center"
+        >
+          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          View All Employees
+        </button>
       </div>
       
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">

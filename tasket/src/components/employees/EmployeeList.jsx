@@ -11,6 +11,7 @@ const EmployeeList = () => {
     navigateToEmployee, 
     navigateToTasks,
     navigateToDepartments,
+    navigateToCalendar,
     isAdmin
   } = useApp();
   
@@ -42,6 +43,16 @@ const EmployeeList = () => {
           </svg>
         </button>
         <h1 className="text-2xl font-semibold text-gray-800">{department.name} Team</h1>
+        
+        <button
+          onClick={navigateToCalendar}
+          className="ml-auto text-indigo-600 hover:text-indigo-800 flex items-center"
+        >
+          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          View Calendar
+        </button>
       </div>
       
       <div className="flex items-center justify-between mb-6">

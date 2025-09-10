@@ -1,6 +1,8 @@
 const express = require('express');
 const { body } = require('express-validator');
+const validator = require('validator');
 const { auth } = require('../middleware/auth');
+const { taskAttachmentUpload } = require('../middleware/upload'); // Add upload middleware
 const {
   getTasks,
   getTask,
@@ -26,16 +28,8 @@ router.get('/:id', auth, getTask);
 // @access  Private
 router.post('/', [
   auth,
-  body('title').trim().isLength({ min: 1 }),
-  body('description').optional().trim(),
-  body('assigned_to').isUUID(),
-  body('department_id').optional().isUUID(),
-  body('status').optional().isIn(['planned', 'in-progress', 'completed', 'cancelled']),
-  body('priority').optional().isIn(['low', 'medium', 'high', 'urgent']),
-  body('due_date').optional().isISO8601(),
-  body('start_date').optional().isISO8601(),
-  body('estimated_hours').optional().isInt({ min: 1 }),
-  body('tags').optional().isArray()
+  taskAttachmentUpload.array('attachments', 10) // Handle up to 10 attachment files
+  // Remove validation middleware that conflicts with FormData
 ], createTask);
 
 // @route   PUT /api/tasks/:id
@@ -43,17 +37,8 @@ router.post('/', [
 // @access  Private
 router.put('/:id', [
   auth,
-  body('title').optional().trim().isLength({ min: 1 }),
-  body('description').optional().trim(),
-  body('assigned_to').optional().isUUID(),
-  body('department_id').optional().isUUID(),
-  body('status').optional().isIn(['planned', 'in-progress', 'completed', 'cancelled']),
-  body('priority').optional().isIn(['low', 'medium', 'high', 'urgent']),
-  body('due_date').optional().isISO8601(),
-  body('start_date').optional().isISO8601(),
-  body('estimated_hours').optional().isInt({ min: 1 }),
-  body('actual_hours').optional().isInt({ min: 1 }),
-  body('tags').optional().isArray()
+  taskAttachmentUpload.array('attachments', 10) // Handle up to 10 attachment files
+  // Remove validation middleware that conflicts with FormData
 ], updateTask);
 
 // @route   DELETE /api/tasks/:id

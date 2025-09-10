@@ -28,6 +28,11 @@ const Employee = sequelize.define('Employee', {
     type: DataTypes.STRING,
     allowNull: true
   },
+  // Add job description field
+  job_description: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
   department_id: {
     type: DataTypes.UUID,
     allowNull: true,
@@ -55,6 +60,11 @@ const Employee = sequelize.define('Employee', {
   is_active: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  // Add photo field for employee photos
+  photo: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
   created_at: {
     type: DataTypes.DATE,

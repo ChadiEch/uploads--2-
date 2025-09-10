@@ -58,6 +58,22 @@ const TaskDetail = ({ task, onClose }) => {
     }
   };
 
+  // Helper function to construct proper attachment URL
+  const getAttachmentUrl = (attachment) => {
+    if (attachment.type === 'link') {
+      return attachment.url;
+    } else {
+      // For documents and photos, construct the full URL if it's a relative path
+      if (attachment.url.startsWith('/uploads/')) {
+        // Get the base URL without the /api part
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+        const serverBaseUrl = baseUrl.replace('/api', '');
+        return `${serverBaseUrl}${attachment.url}`;
+      }
+      return attachment.url;
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
       {isEditMode ? (
@@ -146,7 +162,7 @@ const TaskDetail = ({ task, onClose }) => {
                   {task.attachments.map((attachment, index) => (
                     <a
                       key={index}
-                      href={attachment.url}
+                      href={getAttachmentUrl(attachment)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center px-3 py-2 bg-gray-100 rounded-md hover:bg-gray-200"

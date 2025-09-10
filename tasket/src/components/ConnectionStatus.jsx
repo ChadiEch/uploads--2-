@@ -2,21 +2,51 @@ import React from 'react';
 import { useWebSocket } from '../context/WebSocketContext';
 
 const ConnectionStatus = () => {
-  const { connected, onlineUsers } = useWebSocket();
+  const { connected, onlineUsers, socket } = useWebSocket();
+
+  // Determine connection status message
+  const getConnectionStatus = () => {
+    // If there's no socket instance, we're disconnected
+    if (!socket) {
+      return { text: 'Disconnected', color: 'red' };
+    }
+    
+    // If we're connected, show connected status
+    if (connected && socket.connected) {
+      return { text: 'Connected', color: 'green' };
+    }
+    
+    // If socket exists but we're not connected, we might be connecting or disconnected
+    // Check socket's actual connection state
+    if (socket.connected) {
+      return { text: 'Connected', color: 'green' };
+    }
+    
+    // If we're in the process of connecting
+    if (socket.disconnected === false && socket.connected === false) {
+      return { text: 'Connecting...', color: 'yellow' };
+    }
+    
+    // If socket is disconnected
+    if (socket.disconnected) {
+      return { text: 'Disconnected', color: 'red' };
+    }
+    
+    // Default to disconnected
+    return { text: 'Disconnected', color: 'red' };
+  };
+
+  const status = getConnectionStatus();
 
   return (
     <div className="flex items-center space-x-2 text-sm">
       {/* Connection indicator */}
       <div className="flex items-center space-x-1">
         <div
-          className={`w-2 h-2 rounded-full ${
-            connected ? 'bg-green-500' : 'bg-red-500'
-          }`}
+          className={`w-2 h-2 rounded-full bg-${status.color}-500`}
         />
-        <span className={`text-xs ${
-          connected ? 'text-green-600' : 'text-red-600'
-        }`}>
-          {connected ? 'Connected' : 'Disconnected'}
+        <span className={`text-xs text-${status.color}-600`}>
+          {status.text}
         </span>
       </div>
 

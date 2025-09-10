@@ -3,8 +3,8 @@ import { useAuth } from '../context/AuthContext'
 import { useApp } from '../context/AppContext'
 
 const Profile = () => {
-  const { employee, updateProfile } = useAuth()
-  const { departments, getMyTasks } = useApp()
+  const { employee, updateProfile, isAdmin } = useAuth() // Get isAdmin from useAuth instead of useApp
+  const { departments, getMyTasks } = useApp() // Remove isAdmin from useApp
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -12,8 +12,14 @@ const Profile = () => {
     name: employee?.name || '',
     position: employee?.position || '',
     phone: employee?.phone || '',
-    department_id: employee?.department_id || ''
+    department_id: employee?.department_id || '',
+    email: employee?.email || '',
+    password: '',
+    confirmPassword: '',
+    job_description: employee?.job_description || '',
+    photo: employee?.photo || ''
   })
+  const [previewPhoto, setPreviewPhoto] = useState(employee?.photo || '')
 
   const myTasks = getMyTasks()
   const taskStats = {
@@ -29,7 +35,41 @@ const Profile = () => {
     setError('')
 
     try {
-      await updateProfile(formData)
+      // Validate password fields if changing password
+      if ((formData.password || formData.confirmPassword)) {
+        if (formData.password !== formData.confirmPassword) {
+          setError('Passwords do not match')
+          setLoading(false)
+          return
+        }
+        if (formData.password && formData.password.length < 6) {
+          setError('Password must be at least 6 characters long')
+          setLoading(false)
+          return
+        }
+      }
+
+      // Prepare data - only admin users can edit all fields
+      let updateData = { 
+        name: formData.name, 
+        position: formData.position, 
+        phone: formData.phone, 
+        department_id: formData.department_id,
+        email: formData.email,
+        job_description: formData.job_description,
+        ...(formData.password && { password: formData.password })
+      }
+
+      // Handle photo upload - only for admin users
+      if (isAdmin && formData.photo && formData.photo instanceof File) {
+        updateData.photo = formData.photo
+      } else if (isAdmin && typeof formData.photo === 'string' && formData.photo !== employee?.photo) {
+        // If it's a string but different from current photo, it might be a base64 preview
+        // In this case, we'll send it as is (for backward compatibility)
+        updateData.photo = formData.photo
+      }
+
+      await updateProfile(updateData)
       setIsEditing(false)
     } catch (err) {
       setError(err.message)
@@ -39,9 +79,46 @@ const Profile = () => {
   }
 
   const handleChange = (e) => {
+    // Only allow changes for admin users
+    if (!isAdmin) return;
+    
     setFormData(prev => ({
       ...prev,
       [e.target.name]: e.target.value
+    }))
+  }
+
+  // Handle photo file upload - only for admin users
+  const handlePhotoUpload = (e) => {
+    // Only allow photo upload for admin users
+    if (!isAdmin) return;
+    
+    const file = e.target.files[0]
+    if (!file) return
+
+    // Check if file is an image
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload a valid image file (JPEG, PNG, GIF)')
+      return
+    }
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image size must be less than 5MB')
+      return
+    }
+
+    // Create preview
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setPreviewPhoto(reader.result)
+    }
+    reader.readAsDataURL(file)
+
+    // Store the actual file for upload
+    setFormData(prev => ({
+      ...prev,
+      photo: file
     }))
   }
 
@@ -50,8 +127,14 @@ const Profile = () => {
       name: employee?.name || '',
       position: employee?.position || '',
       phone: employee?.phone || '',
-      department_id: employee?.department_id || ''
+      department_id: employee?.department_id || '',
+      email: employee?.email || '',
+      password: '',
+      confirmPassword: '',
+      job_description: employee?.job_description || '',
+      photo: employee?.photo || ''
     })
+    setPreviewPhoto(employee?.photo || '')
     setIsEditing(false)
     setError('')
   }
@@ -61,7 +144,8 @@ const Profile = () => {
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-semibold text-gray-900">My Profile</h1>
-          {!isEditing && (
+          {/* Only show edit button for admin users */}
+          {!isEditing && isAdmin && (
             <button
               onClick={() => setIsEditing(true)}
               className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 flex items-center"
@@ -88,6 +172,7 @@ const Profile = () => {
 
               {isEditing ? (
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* Only admin users can edit fields */}
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
                       Full Name
@@ -98,7 +183,8 @@ const Profile = () => {
                       name="name"
                       value={formData.name}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      disabled={!isAdmin} // Disable for non-admin users
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${!isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     />
                   </div>
 
@@ -112,7 +198,8 @@ const Profile = () => {
                       name="position"
                       value={formData.position}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      disabled={!isAdmin} // Disable for non-admin users
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${!isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     />
                   </div>
 
@@ -126,7 +213,23 @@ const Profile = () => {
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      disabled={!isAdmin} // Disable for non-admin users
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${!isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      disabled={!isAdmin} // Disable for non-admin users
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${!isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     />
                   </div>
 
@@ -139,7 +242,8 @@ const Profile = () => {
                       name="department_id"
                       value={formData.department_id}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      disabled={!isAdmin} // Disable for non-admin users
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${!isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                     >
                       <option value="">Select department</option>
                       {departments.map(dept => (
@@ -147,6 +251,95 @@ const Profile = () => {
                       ))}
                     </select>
                   </div>
+
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                      New Password (leave blank to keep current)
+                    </label>
+                    <input
+                      type="password"
+                      id="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="Enter new password"
+                      disabled={!isAdmin} // Disable for non-admin users
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${!isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                      Confirm New Password
+                    </label>
+                    <input
+                      type="password"
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      placeholder="Confirm new password"
+                      disabled={!isAdmin} // Disable for non-admin users
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${!isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                    />
+                  </div>
+
+                  {/* Job Description field - only for admin users */}
+                  <div>
+                    <label htmlFor="job_description" className="block text-sm font-medium text-gray-700 mb-1">
+                      Job Description
+                    </label>
+                    <textarea
+                      id="job_description"
+                      name="job_description"
+                      value={formData.job_description}
+                      onChange={handleChange}
+                      rows="3"
+                      disabled={!isAdmin} // Disable for non-admin users
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${!isAdmin ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                      placeholder="Enter your job description"
+                    />
+                  </div>
+
+                  {/* Photo upload field - only for admin users */}
+                  {isAdmin && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Profile Photo
+                      </label>
+                      <div className="flex items-center space-x-4">
+                        <div className="relative">
+                          <img 
+                            src={previewPhoto?.startsWith('/uploads/') 
+                              ? `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5002'}${previewPhoto}` 
+                              : (previewPhoto || '/default-avatar.png')}
+                            alt="Preview" 
+                            className="w-16 h-16 rounded-full object-cover"
+                            onError={(e) => {
+                              e.target.src = '/default-avatar.png';
+                              e.target.onerror = null;
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <input
+                            type="file"
+                            id="photo-upload"
+                            accept="image/*"
+                            onChange={handlePhotoUpload}
+                            className="hidden"
+                          />
+                          <label 
+                            htmlFor="photo-upload"
+                            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 cursor-pointer"
+                          >
+                            Upload Photo
+                          </label>
+                          <p className="text-xs text-gray-500 mt-1">Max file size: 5MB</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex justify-end space-x-3 pt-4">
                     <button
@@ -156,20 +349,33 @@ const Profile = () => {
                     >
                       Cancel
                     </button>
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50"
-                    >
-                      {loading ? 'Saving...' : 'Save Changes'}
-                    </button>
+                    {isAdmin && ( // Only show save button for admin users
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                      >
+                        {loading ? 'Saving...' : 'Save Changes'}
+                      </button>
+                    )}
                   </div>
                 </form>
               ) : (
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                    <p className="mt-1 text-sm text-gray-900">{employee?.name || 'Not provided'}</p>
+                  <div className="flex items-center space-x-4 mb-4">
+                    <img
+                      src={employee?.photo ? `${import.meta.env.VITE_API_BASE_URL || ''}${employee.photo}` : '/default-avatar.png'}
+                      alt="Profile"
+                      className="w-16 h-16 rounded-full object-cover"
+                      onError={(e) => {
+                        e.target.src = '/default-avatar.png';
+                        e.target.onerror = null;
+                      }}
+                    />
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">{employee?.name || 'Not provided'}</h3>
+                      <p className="text-sm text-gray-500">{employee?.position || 'Position not specified'}</p>
+                    </div>
                   </div>
 
                   <div>
@@ -179,7 +385,7 @@ const Profile = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Employee ID</label>
-                    <p className="mt-1 text-sm text-gray-900">{employee?.employee_id}</p>
+                    <p className="mt-1 text-sm text-gray-900">{employee?.id}</p>
                   </div>
 
                   <div>
@@ -190,6 +396,11 @@ const Profile = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Phone Number</label>
                     <p className="mt-1 text-sm text-gray-900">{employee?.phone || 'Not provided'}</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Job Description</label>
+                    <p className="mt-1 text-sm text-gray-900">{employee?.job_description || 'Not provided'}</p>
                   </div>
 
                   <div>
@@ -205,9 +416,30 @@ const Profile = () => {
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                         employee?.role === 'admin' 
                           ? 'bg-purple-100 text-purple-800' 
+                          : employee?.role === 'manager'
+                          ? 'bg-green-100 text-green-800'
                           : 'bg-blue-100 text-blue-800'
                       }`}>
-                        {employee?.role === 'admin' ? 'Administrator' : 'Employee'}
+                        {employee?.role === 'admin' ? 'Administrator' : 
+                         employee?.role === 'manager' ? 'Manager' : 'Employee'}
+                      </span>
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Hire Date</label>
+                    <p className="mt-1 text-sm text-gray-900">
+                      {employee?.hire_date ? new Date(employee.hire_date).toLocaleDateString() : 'Not provided'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Status</label>
+                    <p className="mt-1 text-sm text-gray-900">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        employee?.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {employee?.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </p>
                   </div>

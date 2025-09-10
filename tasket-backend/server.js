@@ -82,6 +82,9 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
@@ -107,9 +110,12 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.join(__dirname, '../tasket/dist/index.html'));
   });
 } else {
-  // 404 handler for development
-  app.use('*', (req, res) => {
-    res.status(404).json({ message: 'Route not found' });
+  // In development, we still need to serve static files but not interfere with API routes
+  // The catch-all handler should only apply to truly unmatched routes
+  // But we should not interfere with static file serving
+  // 404 handler for unmatched API routes only
+  app.use('/api/*', (req, res) => {
+    res.status(404).json({ message: 'API route not found' });
   });
 }
 
@@ -131,13 +137,21 @@ app.use((err, req, res, next) => {
     });
   }
   
+  // Handle multer errors
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: 'File size too large. Maximum size is 5MB.' });
+    }
+  }
+  
   res.status(err.status || 500).json({
     message: err.message || 'Internal server error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
 
-const PORT = process.env.PORT || 5000;
+// Use port 5002 instead of 5000 or 5001 to avoid conflicts
+const PORT = process.env.PORT || 5002;
 
 // Database connection and server start
 const startServer = async () => {

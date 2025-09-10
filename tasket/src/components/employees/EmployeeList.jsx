@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import EmployeeForm from './EmployeeForm';
+import { getEmployeePhotoUrl, handleImageError } from '../../lib/imageUtils';
 
 const EmployeeList = () => {
   const { 
@@ -65,9 +66,10 @@ const EmployeeList = () => {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center">
                   <img 
-                    src={employee.profilePic} 
+                    src={getEmployeePhotoUrl(employee.photo)}
                     alt={employee.name}
                     className="w-12 h-12 rounded-full mr-4 object-cover" 
+                    onError={(e) => handleImageError(e)}
                   />
                   <div>
                     <h2 className="text-lg font-medium text-gray-800">{employee.name}</h2>

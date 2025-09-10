@@ -11,7 +11,25 @@ import Login from './components/auth/Login'
 import NotificationContainer from './components/NotificationContainer'
 
 function AppContent() {
-  const { user, loading } = useAuth()
+  const { user, loading, error } = useAuth()
+
+  // Add error boundary for debugging
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-red-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-800 mb-4">Authentication Error</h1>
+          <p className="text-red-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+          >
+            Reload Page
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   if (loading) {
     return (
@@ -60,9 +78,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <div className="App">
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </div>
   )
 }
 

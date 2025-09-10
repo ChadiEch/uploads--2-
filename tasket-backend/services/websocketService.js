@@ -240,8 +240,14 @@ class WebSocketService {
       timestamp: new Date().toISOString()
     };
 
-    this.io.to(`user_${userId}`).emit('notification', eventData);
-    console.log(`Notification sent to user ${userId}`);
+    // Special handling for 'all' to broadcast to all connected users
+    if (userId === 'all') {
+      this.io.emit('notification', eventData);
+      console.log('Notification sent to all users');
+    } else {
+      this.io.to(`user_${userId}`).emit('notification', eventData);
+      console.log(`Notification sent to user ${userId}`);
+    }
   }
 
   // Public methods for controllers to use

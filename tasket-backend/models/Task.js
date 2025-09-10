@@ -17,7 +17,7 @@ const Task = sequelize.define('Task', {
   },
   assigned_to: {
     type: DataTypes.UUID,
-    allowNull: false,
+    allowNull: true,
     references: {
       model: 'employees',
       key: 'id'
@@ -61,7 +61,7 @@ const Task = sequelize.define('Task', {
   },
   estimated_hours: {
     type: DataTypes.INTEGER,
-    allowNull: true
+    allowNull: false
   },
   actual_hours: {
     type: DataTypes.INTEGER,
@@ -76,6 +76,18 @@ const Task = sequelize.define('Task', {
     },
     set(value) {
       this.setDataValue('tags', Array.isArray(value) ? value : []);
+    }
+  },
+  // Add attachments field for documents, links, and photos
+  attachments: {
+    type: DataTypes.JSON,
+    defaultValue: [],
+    get() {
+      const rawValue = this.getDataValue('attachments');
+      return rawValue ? (Array.isArray(rawValue) ? rawValue : JSON.parse(rawValue)) : [];
+    },
+    set(value) {
+      this.setDataValue('attachments', Array.isArray(value) ? value : []);
     }
   },
   created_at: {

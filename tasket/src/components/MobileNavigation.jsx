@@ -11,7 +11,7 @@ const MobileNavigation = () => {
     { name: 'Dashboard', key: 'dashboard', icon: 'chart-square-bar' },
     { name: 'Departments', key: 'departments', icon: 'office-building' },
     { name: 'Employees', key: 'employees', icon: 'users' },
-    { name: 'Calendar', key: 'calendar', icon: 'calendar' },
+    { name: 'Enhanced Calendar', key: 'calendar', icon: 'calendar' },
     { name: 'Reports', key: 'reports', icon: 'chart-bar' }
   ]
 

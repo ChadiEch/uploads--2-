@@ -1,27 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { tasksAPI } from '../../lib/api'; // Import tasksAPI for file uploads
 
 const TaskForm = ({ task, employeeId, date, onClose }) => {
   const { createTask, updateTask, deleteTask, userRole, currentUser, employees } = useApp();
   const isEditing = !!task?.id;
-  const canEdit = userRole === 'admin' || (userRole === 'employee' && currentUser?.id === employeeId);
-  const canDelete = userRole === 'admin';
+  const canEdit = userRole === 'admin' || (userRole === 'employee' && currentUser?.id === employeeId) || (!isEditing && userRole === 'employee' && !employeeId);
+  const canDelete = userRole === 'admin' || (userRole === 'employee' && task?.created_by === currentUser?.id);
+  const isAdmin = userRole === 'admin';
+
+  // Helper function to get local date string in YYYY-MM-DD format
+  const getLocalDateString = (date = new Date()) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   const [formData, setFormData] = useState({
     title: task?.title || '',
     description: task?.description || '',
-    due_date: task?.due_date?.split('T')[0] || date || new Date().toISOString().split('T')[0],
+    due_date: task?.due_date?.split('T')[0] || date || getLocalDateString(),
     priority: task?.priority || 'medium',
     status: task?.status || 'planned',
     assigned_to: task?.assigned_to || employeeId || currentUser?.id,
-    estimated_hours: task?.estimated_hours || '',
+    estimated_hours: task?.estimated_hours !== undefined && task?.estimated_hours !== null ? parseInt(task.estimated_hours, 10) : 1,
     department_id: task?.department_id || currentUser?.department_id,
+    attachments: task?.attachments || [] // Add attachments to form data
   });
 
   const [errors, setErrors] = useState({
     title: '',
-    assigned_to: ''
+    assigned_to: '',
+    estimated_hours: '',
+    general: ''
   });
+
+  const [newAttachment, setNewAttachment] = useState({ type: 'link', url: '', name: '' });
+  const [attachmentFiles, setAttachmentFiles] = useState([]); // For file attachments
+  const [attachmentFileMap, setAttachmentFileMap] = useState({}); // Map attachment IDs to files
+
+  // Reset form when task changes
+  useEffect(() => {
+    if (task) {
+      setFormData({
+        title: task.title || '',
+        description: task.description || '',
+        due_date: task.due_date?.split('T')[0] || date || getLocalDateString(),
+        priority: task.priority || 'medium',
+        status: task.status || 'planned',
+        assigned_to: task.assigned_to || employeeId || currentUser?.id,
+        estimated_hours: task.estimated_hours !== undefined && task.estimated_hours !== null ? parseInt(task.estimated_hours, 10) : 1,
+        department_id: task.department_id || currentUser?.department_id,
+        attachments: task.attachments || []
+      });
+    }
+  }, [task, employeeId, date, currentUser]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -33,13 +67,91 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
     }
   };
 
+  const handleAttachmentChange = (e) => {
+    const { name, value } = e.target;
+    setNewAttachment({ ...newAttachment, [name]: value });
+  };
+
+  // Handle file upload for documents and photos
+  const handleFileUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      // Store the files to be uploaded
+      const fileAttachments = files.map(file => ({
+        file,
+        attachment: {
+          id: Date.now() + Math.random(),
+          type: file.type.startsWith('image/') ? 'photo' : 'document',
+          url: URL.createObjectURL(file), // For preview only
+          name: file.name
+        }
+      }));
+      
+      // Update the file map
+      const newFileMap = {};
+      fileAttachments.forEach(({ file, attachment }) => {
+        newFileMap[attachment.id] = file;
+      });
+      
+      setAttachmentFileMap(prev => ({ ...prev, ...newFileMap }));
+      
+      // Add file info to newAttachment for display (use the first one)
+      setNewAttachment(fileAttachments[0].attachment);
+    }
+  };
+
+  const addAttachment = () => {
+    if ((newAttachment.type === 'link' && !newAttachment.url) || 
+        ((newAttachment.type === 'document' || newAttachment.type === 'photo') && (!newAttachment.name || !newAttachment.url))) {
+      return;
+    }
+    
+    const attachment = {
+      id: newAttachment.id || Date.now() + Math.random(), // Use existing ID if it's a file, generate new one for links
+      type: newAttachment.type,
+      // For file attachments, use a placeholder URL that will be replaced by the server
+      // For links, use the actual URL
+      url: newAttachment.type === 'link' ? newAttachment.url : (newAttachment.url || ''), 
+      name: newAttachment.name || newAttachment.url
+    };
+    
+    setFormData({
+      ...formData,
+      attachments: [...formData.attachments, attachment]
+    });
+    
+    // Clear newAttachment but preserve file mapping
+    setNewAttachment({ type: 'link', url: '', name: '' });
+  };
+
+  const removeAttachment = (id) => {
+    setFormData({
+      ...formData,
+      attachments: formData.attachments.filter(attachment => attachment.id !== id)
+    });
+    
+    // Also remove from attachmentFileMap if it's a file
+    setAttachmentFileMap(prev => {
+      const newMap = { ...prev };
+      delete newMap[id];
+      return newMap;
+    });
+  };
+
   const validate = () => {
     const newErrors = {};
     if (!formData.title.trim()) {
       newErrors.title = 'Title is required';
     }
-    if (!formData.assigned_to) {
+    // For admins, allow empty assigned_to (will be handled by backend)
+    // For employees, require assigned_to for new tasks
+    if (!isAdmin && !formData.assigned_to && !isEditing) {
       newErrors.assigned_to = 'Assigned employee is required';
+    }
+    // Check if estimated_hours is provided and is a valid number >= 1
+    const estimatedHours = formData.estimated_hours !== undefined && formData.estimated_hours !== null && formData.estimated_hours !== '' ? parseInt(formData.estimated_hours, 10) : 1;
+    if (isNaN(estimatedHours) || estimatedHours < 1) {
+      newErrors.estimated_hours = 'Estimated hours is required and must be at least 1';
     }
     
     setErrors(newErrors);
@@ -54,20 +166,104 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
     }
     
     try {
-      if (isEditing) {
-        await updateTask(task.id, {
-          ...formData,
-          estimated_hours: formData.estimated_hours ? parseInt(formData.estimated_hours) : null
-        });
+      setErrors({ title: '', assigned_to: '', estimated_hours: '', general: '' }); // Clear previous errors
+    
+      // Prepare data with proper type conversion
+      const taskData = {
+        ...formData,
+        estimated_hours: formData.estimated_hours !== undefined && formData.estimated_hours !== null && formData.estimated_hours !== '' ? parseInt(formData.estimated_hours, 10) : 1 // Ensure proper integer conversion
+      };
+    
+      // For admin, allow assignment to any employee or no assignment (backend will handle)
+      // For employee, keep current behavior
+      if (isAdmin) {
+        // Admin can assign to any employee or leave it blank
+        // If assigned_to is empty string, set it to null so backend can handle it properly
+        if (taskData.assigned_to === '') {
+          taskData.assigned_to = null;
+        }
+        // Backend will handle assignment logic
       } else {
-        await createTask({
-          ...formData,
-          estimated_hours: formData.estimated_hours ? parseInt(formData.estimated_hours) : null
-        });
+        // For non-admins, ensure proper assignment
+        // Consistent with backend logic: always assign to current user
+        taskData.assigned_to = currentUser?.id;
       }
+    
+      let result;
+      // Get files that need to be uploaded
+      const filesToUpload = formData.attachments
+        .filter(attachment => attachmentFileMap[attachment.id])
+        .map(attachment => attachmentFileMap[attachment.id]);
+      
+      // Prepare attachments for submission
+      // We need to filter out blob URLs and only send valid attachments or placeholders
+      const attachmentsForSubmission = formData.attachments.map(attachment => {
+        // For file attachments that will be uploaded, ensure they have proper placeholder data
+        if ((attachment.type === 'document' || attachment.type === 'photo') && attachmentFileMap[attachment.id]) {
+          // Return a clean placeholder without the blob URL
+          return {
+            ...attachment,
+            url: '' // Empty URL for placeholder - will be replaced by backend
+          };
+        }
+        return attachment;
+      }).filter(attachment => {
+        // Keep all link attachments with valid URLs
+        if (attachment.type === 'link') {
+          return attachment.url;
+        }
+        // Keep file attachments (either with files to upload or with existing URLs)
+        if (attachment.type === 'document' || attachment.type === 'photo') {
+          return attachment.url || attachmentFileMap[attachment.id];
+        }
+        return false;
+      });
+      
+      // Log for debugging
+      console.log('Submitting task data:', taskData);
+      console.log('Files to upload:', filesToUpload.length);
+      console.log('Attachments for submission:', attachmentsForSubmission);
+      
+      if (isEditing) {
+        // For updates with file attachments, we need to use the API directly
+        if (filesToUpload.length > 0) {
+          result = await tasksAPI.updateTask(task.id, {
+            ...taskData,
+            attachments: attachmentsForSubmission
+          }, filesToUpload); // Pass files to be uploaded
+        } else {
+          result = await updateTask(task.id, taskData);
+        }
+      } else {
+        // For creation with file attachments, we need to use the API directly
+        if (filesToUpload.length > 0) {
+          result = await tasksAPI.createTask({
+            ...taskData,
+            attachments: attachmentsForSubmission
+          }, filesToUpload); // Pass files to be uploaded
+        } else {
+          result = await createTask(taskData);
+        }
+      }
+      
+      if (result.error) {
+        setErrors(prev => ({ ...prev, general: result.error }));
+        return;
+      }
+      
+      // Clear attachment file map and new attachment state
+      setAttachmentFileMap({});
+      setNewAttachment({ type: 'link', url: '', name: '' });
+      
       onClose();
     } catch (error) {
       console.error('Error saving task:', error);
+      // Display backend validation errors
+      if (error.message) {
+        setErrors(prev => ({ ...prev, general: error.message }));
+      } else {
+        setErrors(prev => ({ ...prev, general: 'Failed to save task. Please try again.' }));
+      }
     }
   };
 
@@ -79,6 +275,27 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
       } catch (error) {
         console.error('Error deleting task:', error);
       }
+    }
+  };
+
+  // Helper function to construct proper attachment URL for display
+  const getAttachmentDisplayUrl = (attachment) => {
+    if (attachment.type === 'link') {
+      return attachment.url;
+    } else {
+      // For documents and photos, if it's a local URL, use it as is for display
+      // If it's a blob URL (from file upload preview), use that
+      if (attachment.url && attachment.url.startsWith('blob:')) {
+        return attachment.url;
+      }
+      // For existing attachments, construct the full URL
+      if (attachment.url && attachment.url.startsWith('/uploads/')) {
+        // Get the base URL without the /api part
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+        const serverBaseUrl = baseUrl.replace('/api', '');
+        return `${serverBaseUrl}${attachment.url}`;
+      }
+      return attachment.url || '';
     }
   };
 
@@ -101,6 +318,12 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
           </div>
           
           <form onSubmit={handleSubmit} className="space-y-4">
+            {errors.general && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+                {errors.general}
+              </div>
+            )}
+            
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">Task Title</label>
               <input
@@ -118,18 +341,20 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
 
             <div>
               <label htmlFor="assigned_to" className="block text-sm font-medium text-gray-700 mb-1">Assigned To</label>
-              {userRole === 'admin' ? (
+              {isAdmin ? (
                 <select
                   id="assigned_to"
                   name="assigned_to"
-                  value={formData.assigned_to}
+                  value={formData.assigned_to || ''}
                   onChange={handleChange}
                   disabled={!canEdit}
                   className={`w-full p-2 border rounded-md ${errors.assigned_to ? 'border-red-500' : 'border-gray-300'} ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 >
-                  <option value="">Select employee</option>
-                  {employees.map(emp => (
-                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                  <option value="">Unassigned</option>
+                  {employees.map(employee => (
+                    <option key={employee.id} value={employee.id}>
+                      {employee.name} ({employee.position})
+                    </option>
                   ))}
                 </select>
               ) : (
@@ -174,7 +399,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
               </div>
 
               <div>
-                <label htmlFor="estimated_hours" className="block text-sm font-medium text-gray-700 mb-1">Estimated Hours</label>
+                <label htmlFor="estimated_hours" className="block text-sm font-medium text-gray-700 mb-1">Estimated Hours *</label>
                 <input
                   type="number"
                   id="estimated_hours"
@@ -182,11 +407,13 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                   value={formData.estimated_hours}
                   onChange={handleChange}
                   disabled={!canEdit}
-                  className={`w-full p-2 border rounded-md border-gray-300 ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  className={`w-full p-2 border rounded-md ${errors.estimated_hours ? 'border-red-500' : 'border-gray-300'} ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                   placeholder="Hours"
-                  min="0"
+                  min="1"
                   step="1"
+                  required
                 />
+                {errors.estimated_hours && <p className="text-red-500 text-xs mt-1">{errors.estimated_hours}</p>}
               </div>
             </div>
             
@@ -222,6 +449,120 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                   <option value="in-progress">In Progress</option>
                   <option value="completed">Completed</option>
                 </select>
+              </div>
+            </div>
+            
+            {/* Attachments Section */}
+            <div className="border-t border-gray-200 pt-4">
+              <h3 className="text-lg font-medium text-gray-800 mb-3">Attachments</h3>
+              
+              {/* Add Attachment Form */}
+              <div className="bg-gray-50 p-3 rounded-md mb-3">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mb-2">
+                  <select
+                    name="type"
+                    value={newAttachment.type}
+                    onChange={handleAttachmentChange}
+                    className="p-2 border rounded-md border-gray-300"
+                  >
+                    <option value="link">Link</option>
+                    <option value="document">Document</option>
+                    <option value="photo">Photo</option>
+                  </select>
+                  
+                  {newAttachment.type === 'link' ? (
+                    <input
+                      type="url"
+                      name="url"
+                      value={newAttachment.url}
+                      onChange={handleAttachmentChange}
+                      placeholder="Enter URL"
+                      className="p-2 border rounded-md border-gray-300 col-span-2"
+                    />
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        name="name"
+                        value={newAttachment.name}
+                        onChange={handleAttachmentChange}
+                        placeholder="File name"
+                        className="p-2 border rounded-md border-gray-300"
+                      />
+                      <label className="bg-white text-gray-700 px-3 py-2 border border-gray-300 rounded-md cursor-pointer text-center">
+                        <span>Choose File</span>
+                        <input
+                          type="file"
+                          className="hidden"
+                          onChange={handleFileUpload}
+                          accept={newAttachment.type === 'photo' ? 'image/*' : '.pdf,.doc,.docx'}
+                        />
+                      </label>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={addAttachment}
+                    className="bg-indigo-600 text-white px-3 py-2 rounded-md hover:bg-indigo-700"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+              
+              {/* Attachment List */}
+              <div className="space-y-2">
+                {formData.attachments.map((attachment) => (
+                  <div key={attachment.id} className="flex items-center justify-between p-2 bg-white border rounded-md">
+                    <div className="flex items-center">
+                      {attachment.type === 'link' && (
+                        <svg className="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                      )}
+                      {attachment.type === 'document' && (
+                        <svg className="w-5 h-5 text-yellow-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      )}
+                      {attachment.type === 'photo' && (
+                        <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                      <span className="text-sm">{attachment.name}</span>
+                    </div>
+                    <div className="flex items-center">
+                      {attachment.type !== 'link' && (
+                        <a
+                          href={getAttachmentDisplayUrl(attachment)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:text-blue-700 mr-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(attachment.id)}
+                        className="text-red-500 hover:text-red-700"
+                        disabled={!canEdit}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                
+                {formData.attachments.length === 0 && (
+                  <p className="text-sm text-gray-500 italic">No attachments added</p>
+                )}
               </div>
             </div>
             

@@ -216,7 +216,8 @@ describe('Models', () => {
     it('should require title field', async () => {
       const taskData = {
         description: 'Test task description',
-        assigned_to: testEmployee.id
+        assigned_to: testEmployee.id,
+        estimated_hours: 2
       };
 
       await expect(Task.create(taskData))
@@ -228,7 +229,8 @@ describe('Models', () => {
       const task = await Task.create({
         title: 'Test Task',
         description: 'Test description',
-        assigned_to: testEmployee.id
+        assigned_to: testEmployee.id,
+        estimated_hours: 2
       });
 
       expect(task.status).toBe('planned');
@@ -238,7 +240,8 @@ describe('Models', () => {
       const task = await Task.create({
         title: 'Test Task',
         description: 'Test description',
-        assigned_to: testEmployee.id
+        assigned_to: testEmployee.id,
+        estimated_hours: 2
       });
 
       expect(task.priority).toBe('medium');
@@ -249,7 +252,8 @@ describe('Models', () => {
         title: 'Test Task',
         description: 'Test description',
         status: 'invalid_status',
-        assigned_to: testEmployee.id
+        assigned_to: testEmployee.id,
+        estimated_hours: 2
       };
 
       await expect(Task.create(taskData))
@@ -262,7 +266,8 @@ describe('Models', () => {
         title: 'Test Task',
         description: 'Test description',
         priority: 'invalid_priority',
-        assigned_to: testEmployee.id
+        assigned_to: testEmployee.id,
+        estimated_hours: 2
       };
 
       await expect(Task.create(taskData))
@@ -275,7 +280,8 @@ describe('Models', () => {
         title: 'Test Task',
         description: 'Test description',
         assigned_to: testEmployee.id,
-        created_by: testEmployee.id
+        created_by: testEmployee.id,
+        estimated_hours: 2
       });
 
       const taskWithEmployee = await Task.findByPk(task.id, {
@@ -292,7 +298,8 @@ describe('Models', () => {
         description: 'Test description',
         assigned_to: testEmployee.id,
         created_by: testEmployee.id,
-        department_id: testDepartment.id
+        department_id: testDepartment.id,
+        estimated_hours: 2
       });
 
       const taskWithDept = await Task.findByPk(task.id, {
@@ -325,7 +332,8 @@ describe('Models', () => {
         title: 'Test Task',
         description: 'Test description',
         assigned_to: testEmployee.id,
-        created_by: testEmployee.id
+        created_by: testEmployee.id,
+        estimated_hours: 2
       });
     });
 
@@ -432,7 +440,8 @@ describe('Models', () => {
         description: 'Test description',
         assigned_to: testEmployee.id,
         created_by: testEmployee.id,
-        department_id: testDepartment.id
+        department_id: testDepartment.id,
+        estimated_hours: 2
       });
     });
 

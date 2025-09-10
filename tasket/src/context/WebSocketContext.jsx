@@ -51,9 +51,12 @@ export const WebSocketProvider = ({ children }) => {
         }
       });
 
-      newSocket.on('disconnect', () => {
-        console.log('WebSocket disconnected');
-        setConnected(false);
+      newSocket.on('disconnect', (reason) => {
+        console.log('WebSocket disconnected:', reason);
+        // Only set connected to false if it's not a planned disconnect
+        if (reason !== 'io client disconnect') {
+          setConnected(false);
+        }
       });
 
       newSocket.on('connect_error', (error) => {
@@ -76,6 +79,7 @@ export const WebSocketProvider = ({ children }) => {
 
       newSocket.on('auth_error', (error) => {
         console.error('WebSocket authentication error:', error);
+        setConnected(false);
       });
 
       // Task events
@@ -151,6 +155,9 @@ export const WebSocketProvider = ({ children }) => {
         setSocket(null);
         setConnected(false);
       };
+    } else {
+      // If user is not authenticated, ensure connection status is false
+      setConnected(false);
     }
   }, [isAuthenticated, user]);
 

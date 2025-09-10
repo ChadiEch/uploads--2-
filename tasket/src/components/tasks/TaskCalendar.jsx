@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import TaskForm from './TaskForm';
 import TaskDetail from './TaskDetail';
+import { useWebSocket } from '../../context/WebSocketContext';
 
 const TaskCalendar = () => {
   const { 
@@ -9,25 +9,42 @@ const TaskCalendar = () => {
     getEmployeeById,
     getTasksByEmployee, 
     navigateToDepartmentEmployees,
-    isAdmin 
+    navigateToDayView,
+    isAdmin,
+    tasks
   } = useApp();
   
+  const { subscribeToTaskUpdates, connected } = useWebSocket();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedTask, setSelectedTask] = useState(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(null);
   const [visibleDates, setVisibleDates] = useState([]);
   const [tasksByDate, setTasksByDate] = useState({});
   
   const employee = selectedEmployee ? getEmployeeById(selectedEmployee.id) : null;
-  const tasks = selectedEmployee ? getTasksByEmployee(selectedEmployee.id) : [];
+  const employeeTasks = selectedEmployee ? getTasksByEmployee(selectedEmployee.id) : [];
   
   useEffect(() => {
     // Generate dates for current month view
     generateDatesForMonth(currentDate);
-    // Organize tasks by date
-    organizeTasksByDate(tasks);
-  }, [currentDate, tasks]);
+  }, [currentDate]);
+  
+  // Update tasks when tasks or employee change
+  useEffect(() => {
+    organizeTasksByDate(employeeTasks);
+  }, [employeeTasks, tasks]);
+  
+  // Subscribe to WebSocket task updates
+  useEffect(() => {
+    if (connected && subscribeToTaskUpdates) {
+      const unsubscribe = subscribeToTaskUpdates((eventData) => {
+        // Refresh tasks when there's an update
+        const updatedTasks = selectedEmployee ? getTasksByEmployee(selectedEmployee.id) : [];
+        organizeTasksByDate(updatedTasks);
+      });
+
+      return unsubscribe;
+    }
+  }, [connected, subscribeToTaskUpdates, selectedEmployee, getTasksByEmployee, tasks]);
   
   const generateDatesForMonth = (date) => {
     const year = date.getFullYear();
@@ -88,19 +105,12 @@ const TaskCalendar = () => {
   };
   
   const handleDateClick = (date) => {
-    if (isAdmin) {
-      setSelectedDate(formatDate(date));
-      setIsFormOpen(true);
-    }
+    // Navigate to day view to show tasks for the selected date
+    navigateToDayView(date);
   };
   
   const handleTaskClick = (task) => {
     setSelectedTask(task);
-  };
-  
-  const closeForm = () => {
-    setIsFormOpen(false);
-    setSelectedDate(null);
   };
   
   const closeTaskDetail = () => {
@@ -201,7 +211,7 @@ const TaskCalendar = () => {
               <div
                 key={index}
                 onClick={() => handleDateClick(date)}
-                className={`min-h-[100px] p-2 border-b border-r relative hover:bg-gray-50 transition-colors duration-200 ${
+                className={`min-h-[100px] p-2 border-b border-r relative hover:bg-gray-50 transition-colors duration-200 cursor-pointer ${
                   isCurrentMonth(date) ? 'bg-white' : 'bg-gray-50'
                 } ${isToday(date) ? 'bg-blue-50' : ''}`}
               >
@@ -235,14 +245,6 @@ const TaskCalendar = () => {
           })}
         </div>
       </div>
-      
-      {isFormOpen && (
-        <TaskForm
-          employeeId={employee.id}
-          date={selectedDate}
-          onClose={closeForm}
-        />
-      )}
       
       {selectedTask && (
         <TaskDetail

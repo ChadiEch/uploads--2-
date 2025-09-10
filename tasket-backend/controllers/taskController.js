@@ -1,6 +1,32 @@
-const { validationResult } = require('express-validator');
 const { Task, Employee, Department, TaskComment } = require('../models');
 const { Op } = require('sequelize');
+
+// Helper function to delete old attachment files
+const deleteOldAttachment = (oldAttachmentPath) => {
+  try {
+    // Only delete if the path is a local upload path and not an external URL
+    if (oldAttachmentPath && typeof oldAttachmentPath === 'string' && oldAttachmentPath.startsWith('/uploads/')) {
+      const fs = require('fs');
+      const path = require('path');
+      
+      // Extract just the filename to prevent path traversal attacks
+      const filename = path.basename(oldAttachmentPath);
+      const fullPath = path.join(__dirname, '..', 'uploads', filename);
+      
+      // Additional safety check: ensure the file exists and is in the uploads directory
+      if (fs.existsSync(fullPath) && fullPath.startsWith(path.resolve(__dirname, '..', 'uploads'))) {
+        fs.unlinkSync(fullPath);
+        console.log('Successfully deleted old attachment:', fullPath);
+      } else {
+        console.log('Skipped deletion - file not in uploads directory or does not exist:', fullPath);
+      }
+    } else {
+      console.log('Skipped deletion - not a local upload path:', oldAttachmentPath);
+    }
+  } catch (error) {
+    console.error('Error in deleteOldAttachment function:', error);
+  }
+};
 
 const getTasks = async (req, res) => {
   try {
@@ -110,13 +136,33 @@ const getTask = async (req, res) => {
 
 const createTask = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+    // Handle task data - either from body or parsed from form data
+    let taskData = {};
+    if (req.body.data) {
+      // If data is sent as JSON string in form data
+      try {
+        taskData = JSON.parse(req.body.data);
+      } catch (parseError) {
+        console.error('Error parsing task data:', parseError);
+        return res.status(400).json({ message: 'Invalid task data format' });
+      }
+    } else {
+      // If data is sent as regular form fields
+      taskData = req.body;
+    }
+
+    // Validate required fields
+    const { title, estimated_hours } = taskData;
+    if (!title || title.trim().length === 0) {
+      return res.status(400).json({ message: 'Title is required' });
+    }
+    
+    const parsedEstimatedHours = estimated_hours ? parseInt(estimated_hours, 10) : null;
+    if (parsedEstimatedHours === null || isNaN(parsedEstimatedHours) || parsedEstimatedHours < 1) {
+      return res.status(400).json({ message: 'Estimated hours is required and must be at least 1' });
     }
 
     const {
-      title,
       description,
       assigned_to,
       department_id,
@@ -124,23 +170,51 @@ const createTask = async (req, res) => {
       priority,
       due_date,
       start_date,
-      estimated_hours,
-      tags
-    } = req.body;
+      tags,
+      attachments // This will be handled separately
+    } = taskData;
 
-    const task = await Task.create({
+    // For admins, allow assignment to any employee or unassigned (null)
+    // For non-admins, always assign to the current user
+    let assignedToEmployee = req.user.id; // Default to current user
+    if (req.user.role === 'admin') {
+      // Admin can assign to any employee or leave it unassigned (null)
+      assignedToEmployee = assigned_to !== undefined ? assigned_to : req.user.id;
+    }
+
+    // Process uploaded files
+    let processedAttachments = Array.isArray(attachments) ? attachments : [];
+    if (req.files && req.files.length > 0) {
+      // Add uploaded files to attachments
+      const uploadedFiles = req.files.map(file => ({
+        id: Date.now() + Math.random(), // Generate a temporary ID
+        type: file.mimetype.startsWith('image/') ? 'photo' : 'document',
+        url: `/uploads/${file.filename}`,
+        name: file.originalname
+      }));
+      
+      // Filter out placeholder attachments (those with empty URLs)
+      // This ensures we only keep valid attachments and replace placeholders with actual uploaded files
+      const filteredAttachments = processedAttachments.filter(attachment => attachment && attachment.url);
+      processedAttachments = [...filteredAttachments, ...uploadedFiles];
+    }
+
+    const finalTaskData = {
       title,
       description,
-      assigned_to,
+      assigned_to: assignedToEmployee,
       created_by: req.user.id,
       department_id,
       status: status || 'planned',
       priority: priority || 'medium',
       due_date,
       start_date,
-      estimated_hours,
-      tags: tags || []
-    });
+      estimated_hours: parsedEstimatedHours,
+      tags: Array.isArray(tags) ? tags : [],
+      attachments: processedAttachments
+    };
+
+    const task = await Task.create(finalTaskData);
 
     const taskWithDetails = await Task.findByPk(task.id, {
       include: [
@@ -180,25 +254,22 @@ const createTask = async (req, res) => {
 
 const updateTask = async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
     const { id } = req.params;
-    const {
-      title,
-      description,
-      assigned_to,
-      department_id,
-      status,
-      priority,
-      due_date,
-      start_date,
-      estimated_hours,
-      actual_hours,
-      tags
-    } = req.body;
+    
+    // Handle task data - either from body or parsed from form data
+    let taskData = {};
+    if (req.body.data) {
+      // If data is sent as JSON string in form data
+      try {
+        taskData = JSON.parse(req.body.data);
+      } catch (parseError) {
+        console.error('Error parsing task data:', parseError);
+        return res.status(400).json({ message: 'Invalid task data format' });
+      }
+    } else {
+      // If data is sent as regular form fields
+      taskData = req.body;
+    }
 
     const task = await Task.findByPk(id);
     if (!task) {
@@ -212,25 +283,67 @@ const updateTask = async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    const updateData = {
-      title,
-      description,
-      assigned_to,
-      department_id,
-      status,
-      priority,
-      due_date,
-      start_date,
-      estimated_hours,
-      actual_hours,
-      tags
-    };
-
-    // Set completed_date if status is completed
-    if (status === 'completed' && task.status !== 'completed') {
-      updateData.completed_date = new Date();
-    } else if (status !== 'completed') {
-      updateData.completed_date = null;
+    // Prepare update data
+    const updateData = {};
+    
+    // Only include fields that are actually provided in the request
+    if (taskData.title !== undefined) updateData.title = taskData.title;
+    if (taskData.description !== undefined) updateData.description = taskData.description;
+    if (taskData.assigned_to !== undefined) {
+      // Only admins can change assignment
+      if (req.user.role === 'admin') {
+        updateData.assigned_to = taskData.assigned_to;
+      } else {
+        // Non-admins cannot change assignment
+        updateData.assigned_to = task.assigned_to;
+      }
+    }
+    if (taskData.department_id !== undefined) updateData.department_id = taskData.department_id;
+    if (taskData.status !== undefined) updateData.status = taskData.status;
+    if (taskData.priority !== undefined) updateData.priority = taskData.priority;
+    if (taskData.due_date !== undefined) updateData.due_date = taskData.due_date;
+    if (taskData.start_date !== undefined) updateData.start_date = taskData.start_date;
+    if (taskData.estimated_hours !== undefined) {
+      const parsedEstimatedHours = parseInt(taskData.estimated_hours, 10);
+      if (!isNaN(parsedEstimatedHours) && parsedEstimatedHours >= 1) {
+        updateData.estimated_hours = parsedEstimatedHours;
+      }
+    }
+    if (taskData.actual_hours !== undefined) {
+      const parsedActualHours = parseInt(taskData.actual_hours, 10);
+      if (!isNaN(parsedActualHours) && parsedActualHours >= 0) {
+        updateData.actual_hours = parsedActualHours;
+      }
+    }
+    if (taskData.tags !== undefined) updateData.tags = Array.isArray(taskData.tags) ? taskData.tags : [];
+    
+    // Process uploaded files for attachments
+    let processedAttachments = taskData.attachments;
+    if (req.files && req.files.length > 0) {
+      // Add uploaded files to attachments
+      const uploadedFiles = req.files.map(file => ({
+        id: Date.now() + Math.random(), // Generate a temporary ID
+        type: file.mimetype.startsWith('image/') ? 'photo' : 'document',
+        url: `/uploads/${file.filename}`,
+        name: file.originalname
+      }));
+      
+      // If we're updating and have existing attachments, filter out any placeholder attachments
+      // that were added for file uploads (they have empty URLs)
+      if (processedAttachments && Array.isArray(processedAttachments)) {
+        // Filter out placeholder attachments (those with empty URLs that were meant to be replaced)
+        const filteredAttachments = processedAttachments.filter(attachment => attachment && attachment.url);
+        processedAttachments = [...filteredAttachments, ...uploadedFiles];
+      } else {
+        processedAttachments = uploadedFiles;
+      }
+    }
+    
+    // Update attachments if provided
+    if (processedAttachments !== undefined) {
+      // Ensure we only store valid attachments with URLs
+      updateData.attachments = Array.isArray(processedAttachments) ? 
+        processedAttachments.filter(att => att && att.url) : [];
     }
 
     await task.update(updateData);
@@ -285,16 +398,12 @@ const deleteTask = async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    // Store task info before deletion for WebSocket event
-    const taskId = task.id;
-    const departmentId = task.department_id;
-
     await task.destroy();
 
     // Emit WebSocket event for real-time updates
     const websocketService = req.app.get('websocketService');
     if (websocketService) {
-      websocketService.notifyTaskDeleted(taskId, departmentId, req.user);
+      websocketService.notifyTaskDeleted(id, task.department_id, req.user);
     }
 
     res.json({ message: 'Task deleted successfully' });

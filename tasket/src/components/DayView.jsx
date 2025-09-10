@@ -1,11 +1,36 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
 import TaskForm from './tasks/TaskForm'
+import { useWebSocket } from '../context/WebSocketContext'
 
 const DayView = () => {
-  const { selectedDate, getTasksForDate, navigateToCalendar, currentUser, deleteTask } = useApp()
+  const { selectedDate, selectedEmployee, getTasksForDate, navigateToCalendar, currentUser, deleteTask, isAdmin, tasks } = useApp()
+  const { subscribeToTaskUpdates, connected } = useWebSocket()
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
+  const [viewingAttachments, setViewingAttachments] = useState(null)
+  const [dayTasks, setDayTasks] = useState([])
+  
+  // Update tasks when date, selected employee, or tasks change
+  useEffect(() => {
+    if (selectedDate) {
+      setDayTasks(getTasksForDate(selectedDate))
+    }
+  }, [selectedDate, selectedEmployee, getTasksForDate, tasks])
+  
+  // Subscribe to WebSocket task updates
+  useEffect(() => {
+    if (connected && subscribeToTaskUpdates) {
+      const unsubscribe = subscribeToTaskUpdates((eventData) => {
+        // Refresh tasks when there's an update
+        if (selectedDate) {
+          setDayTasks(getTasksForDate(selectedDate))
+        }
+      })
+
+      return unsubscribe
+    }
+  }, [connected, subscribeToTaskUpdates, selectedDate, getTasksForDate, selectedEmployee, tasks])
   
   if (!selectedDate) {
     return (
@@ -44,7 +69,22 @@ const DayView = () => {
     setEditingTask(null)
   }
 
-  const dayTasks = getTasksForDate(selectedDate)
+  const closeAttachmentsView = () => {
+    setViewingAttachments(null)
+  }
+
+  const openAttachmentsView = (task) => {
+    setViewingAttachments(task)
+  }
+
+  // Helper function to get local date string in YYYY-MM-DD format
+  const getLocalDateString = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const dateStr = selectedDate.toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -80,6 +120,34 @@ const DayView = () => {
     }
   }
 
+  // Helper function to construct proper attachment URL
+  const getAttachmentUrl = (attachment) => {
+    if (attachment.type === 'link') {
+      return attachment.url;
+    } else {
+      // For documents and photos, construct the full URL if it's a relative path
+      if (attachment.url && attachment.url.startsWith('/uploads/')) {
+        // Get the base URL without the /api part
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+        const serverBaseUrl = baseUrl.replace('/api', '');
+        return `${serverBaseUrl}${attachment.url}`;
+      }
+      return attachment.url || '';
+    }
+  };
+
+  const openAttachment = (attachment) => {
+    const url = getAttachmentUrl(attachment);
+    if (url) {
+      if (attachment.type === 'link') {
+        window.open(url, '_blank');
+      } else {
+        // For documents and photos, open in a new tab
+        window.open(url, '_blank');
+      }
+    }
+  }
+
   return (
     <div className="p-4 md:p-6 pb-20 md:pb-6">
       {/* Header */}
@@ -92,9 +160,20 @@ const DayView = () => {
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Back to Calendar
+            {selectedEmployee && isAdmin ? `Back to ${selectedEmployee.name}'s Calendar` : 'Back to Calendar'}
           </button>
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">{dateStr}</h1>
+          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">
+            {selectedEmployee && isAdmin ? (
+              <>
+                {dateStr}
+                <span className="block text-lg text-indigo-600 font-normal">
+                  Tasks for {selectedEmployee.name}
+                </span>
+              </>
+            ) : (
+              dateStr
+            )}
+          </h1>
           <p className="text-gray-600">{dayTasks.length} task{dayTasks.length !== 1 ? 's' : ''} scheduled</p>
         </div>
         <button
@@ -116,7 +195,12 @@ const DayView = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
             <h3 className="mt-2 text-sm font-medium text-gray-900">No tasks scheduled</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by creating a new task for this day.</p>
+            <p className="mt-1 text-sm text-gray-500">
+              {selectedEmployee && isAdmin 
+                ? `No tasks assigned to ${selectedEmployee.name} for this day.`
+                : 'Get started by creating a new task for this day.'
+              }
+            </p>
             <div className="mt-6">
               <button
                 onClick={() => setShowTaskForm(true)}
@@ -172,6 +256,21 @@ const DayView = () => {
                       Priority: {task.priority}
                     </div>
                   </div>
+                  
+                  {/* Attachments Preview */}
+                  {task.attachments && task.attachments.length > 0 && (
+                    <div className="mt-3">
+                      <button 
+                        onClick={() => openAttachmentsView(task)}
+                        className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center"
+                      >
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                        View Attachments ({task.attachments.length})
+                      </button>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex items-center space-x-2 self-start">
@@ -204,10 +303,71 @@ const DayView = () => {
       {showTaskForm && (
         <TaskForm
           onClose={closeTaskForm}
-          date={selectedDate?.toISOString().split('T')[0]}
-          employeeId={currentUser?.id}
+          date={getLocalDateString(selectedDate)}
+          employeeId={selectedEmployee && isAdmin ? selectedEmployee.id : currentUser?.id}
           task={editingTask}
         />
+      )}
+
+      {/* Attachments View Modal */}
+      {viewingAttachments && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-800">Attachments</h2>
+                <button
+                  onClick={closeAttachmentsView}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="mb-4">
+                <h3 className="font-medium text-gray-700">{viewingAttachments.title}</h3>
+                <p className="text-sm text-gray-500">{viewingAttachments.description}</p>
+              </div>
+              
+              <div className="space-y-3">
+                {viewingAttachments.attachments && viewingAttachments.attachments.length > 0 ? (
+                  viewingAttachments.attachments.map((attachment) => (
+                    <div key={attachment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+                      <div className="flex items-center">
+                        {attachment.type === 'link' && (
+                          <svg className="w-5 h-5 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                          </svg>
+                        )}
+                        {attachment.type === 'document' && (
+                          <svg className="w-5 h-5 text-yellow-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        )}
+                        {attachment.type === 'photo' && (
+                          <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        )}
+                        <span className="text-sm">{attachment.name}</span>
+                      </div>
+                      <button
+                        onClick={() => openAttachment(attachment)}
+                        className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+                      >
+                        Open
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-center py-4">No attachments available</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -30,10 +30,37 @@ const Calendar = () => {
 
   const getTasksForDay = (day) => {
     if (!day) return []
-    const dateStr = new Date(currentYear, currentMonth, day).toISOString().split('T')[0]
+    
+    // Create date for the specific day using local timezone
+    const targetDate = new Date(currentYear, currentMonth, day)
+    const year = targetDate.getFullYear()
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0')
+    const dayStr = String(targetDate.getDate()).padStart(2, '0')
+    const targetDateStr = `${year}-${month}-${dayStr}`
+    
     return tasks.filter(task => {
-      const taskDueDate = task.due_date?.split('T')[0]
-      return taskDueDate === dateStr
+      if (!task.due_date) return false
+      
+      // Handle different date formats and ensure proper comparison
+      let taskDateStr
+      try {
+        // If due_date is already a date string in YYYY-MM-DD format
+        if (typeof task.due_date === 'string' && task.due_date.includes('-') && !task.due_date.includes('T')) {
+          taskDateStr = task.due_date
+        } else {
+          // Parse as full datetime and extract date part using local time
+          const taskDueDate = new Date(task.due_date)
+          const taskYear = taskDueDate.getFullYear()
+          const taskMonth = String(taskDueDate.getMonth() + 1).padStart(2, '0')
+          const taskDay = String(taskDueDate.getDate()).padStart(2, '0')
+          taskDateStr = `${taskYear}-${taskMonth}-${taskDay}`
+        }
+        
+        return taskDateStr === targetDateStr
+      } catch (error) {
+        console.warn('Date parsing error for task:', task.id, task.due_date)
+        return false
+      }
     })
   }
 

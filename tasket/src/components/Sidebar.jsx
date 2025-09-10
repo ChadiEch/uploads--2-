@@ -26,7 +26,7 @@ const Sidebar = () => {
       onClick: () => navigateTo('employees')
     },
     { 
-      name: 'Calendar', 
+      name: 'Enhanced Calendar', 
       key: 'calendar',
       icon: 'calendar', 
       onClick: () => navigateTo('calendar')

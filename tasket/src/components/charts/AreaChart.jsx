@@ -1,13 +1,12 @@
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { areaChartData } from '../../data/mockData';
 
-const AreaChartComponent = () => {
+const AreaChartComponent = ({ data = [] }) => {
   return (
     <div className="h-72">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
-          data={areaChartData}
+          data={data}
           margin={{
             top: 10,
             right: 30,
@@ -16,24 +15,41 @@ const AreaChartComponent = () => {
           }}
         >
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
+          <XAxis dataKey="week" />
           <YAxis />
-          <Tooltip />
+          <Tooltip 
+            formatter={(value, name) => {
+              const labels = {
+                'completed': 'Completed Tasks',
+                'created': 'Created Tasks',
+                'inProgress': 'In Progress Tasks'
+              };
+              return [value, labels[name] || name];
+            }}
+          />
           <Area 
             type="monotone" 
-            dataKey="revenue" 
+            dataKey="completed" 
             stackId="1"
-            stroke="#8884d8" 
-            fill="#8884d8" 
+            stroke="#3B82F6" 
+            fill="#3B82F6" 
+            fillOpacity={0.7} 
+          />
+          <Area 
+            type="monotone" 
+            dataKey="created" 
+            stackId="2"
+            stroke="#10B981" 
+            fill="#10B981" 
             fillOpacity={0.6} 
           />
           <Area 
             type="monotone" 
-            dataKey="profit" 
-            stackId="1"
-            stroke="#82ca9d" 
-            fill="#82ca9d" 
-            fillOpacity={0.6} 
+            dataKey="inProgress" 
+            stackId="3"
+            stroke="#F59E0B" 
+            fill="#F59E0B" 
+            fillOpacity={0.5} 
           />
         </AreaChart>
       </ResponsiveContainer>
@@ -42,3 +58,4 @@ const AreaChartComponent = () => {
 };
 
 export default AreaChartComponent;
+export { AreaChartComponent as AreaChart };

@@ -15,7 +15,7 @@ export const useApp = () => {
 
 export const AppProvider = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
-  const { subscribeToTaskUpdates, connected, emitTaskUpdate } = useWebSocket();
+  const { subscribeToTaskUpdates, connected, emitTaskUpdate, subscribeToNotifications } = useWebSocket();
   const [tasks, setTasks] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -54,6 +54,19 @@ export const AppProvider = ({ children }) => {
           
           // Skip if this update was made by the current user to prevent duplicates
           if (updatedBy && user && updatedBy.id === user.id) {
+            // Still update the state to ensure consistency
+            setTasks(prev => {
+              const existingIndex = prev.findIndex(task => task.id === updatedTask.id);
+              if (existingIndex >= 0) {
+                // Update existing task
+                const newTasks = [...prev];
+                newTasks[existingIndex] = updatedTask;
+                return newTasks;
+              } else {
+                // Add new task
+                return [updatedTask, ...prev];
+              }
+            });
             return;
           }
           
@@ -75,6 +88,33 @@ export const AppProvider = ({ children }) => {
       return unsubscribe;
     }
   }, [connected, subscribeToTaskUpdates, user]);
+
+  // Subscribe to WebSocket notifications for employee updates
+  useEffect(() => {
+    if (connected && subscribeToNotifications) {
+      const unsubscribe = subscribeToNotifications((notification) => {
+        // Handle employee update notifications
+        if (notification.type === 'employee_updated') {
+          // Update the specific employee in the employees array
+          setEmployees(prev => {
+            return prev.map(emp => {
+              if (emp.id === notification.data.id) {
+                return notification.data;
+              }
+              return emp;
+            });
+          });
+          
+          // Also update selectedEmployee if it matches
+          if (selectedEmployee && selectedEmployee.id === notification.data.id) {
+            setSelectedEmployee(notification.data);
+          }
+        }
+      });
+
+      return unsubscribe;
+    }
+  }, [connected, subscribeToNotifications, selectedEmployee]);
 
   const fetchAllData = async () => {
     try {
@@ -240,6 +280,12 @@ export const AppProvider = ({ children }) => {
       setEmployees(prev => prev.map(emp => 
         emp.id === employeeId ? response.employee : emp
       ));
+      
+      // Also update the selectedEmployee if it matches
+      if (selectedEmployee && selectedEmployee.id === employeeId) {
+        setSelectedEmployee(response.employee);
+      }
+      
       return { employee: response.employee, error: null };
     } catch (error) {
       console.error('Error updating employee:', error);
@@ -257,8 +303,8 @@ export const AppProvider = ({ children }) => {
         setEmployees(prev => prev.filter(emp => emp.id !== employeeId));
       } else {
         // If deactivated, refresh the employee data to show updated status
-        const employees = await employeesAPI.getEmployees();
-        setEmployees(employees.employees || []);
+        const employeesResponse = await employeesAPI.getEmployees();
+        setEmployees(employeesResponse.employees || []);
       }
       return { error: null, message: response.message || 'Employee processed successfully' };
     } catch (error) {
@@ -317,7 +363,7 @@ export const AppProvider = ({ children }) => {
   const navigateToTasks = (employeeId) => {
     const employee = employees.find(e => e.id === employeeId);
     setSelectedEmployee(employee);
-    setCurrentView('calendar');
+    setCurrentView('calendar'); // Use the enhanced calendar with 3-step navigation
   };
 
   // Utility functions
@@ -350,11 +396,45 @@ export const AppProvider = ({ children }) => {
 
   const getTasksForDate = (date) => {
     if (!date) return [];
-    const dateStr = date.toISOString().split('T')[0];
-    return tasks.filter(task => {
-      const taskDueDate = task.due_date?.split('T')[0];
-      return taskDueDate === dateStr;
+    
+    // Convert the selected date to local date string (YYYY-MM-DD format)
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const targetDateStr = `${year}-${month}-${day}`;
+    
+    let filteredTasks = tasks.filter(task => {
+      if (!task.due_date) return false;
+      
+      // Handle different date formats and ensure proper comparison
+      let taskDateStr;
+      try {
+        // If due_date is already a date string in YYYY-MM-DD format
+        if (typeof task.due_date === 'string' && task.due_date.includes('-') && !task.due_date.includes('T')) {
+          taskDateStr = task.due_date;
+        } else {
+          // Parse as full datetime and extract date part using local time
+          const taskDueDate = new Date(task.due_date);
+          const taskYear = taskDueDate.getFullYear();
+          const taskMonth = String(taskDueDate.getMonth() + 1).padStart(2, '0');
+          const taskDay = String(taskDueDate.getDate()).padStart(2, '0');
+          taskDateStr = `${taskYear}-${taskMonth}-${taskDay}`;
+        }
+        
+        return taskDateStr === targetDateStr;
+      } catch (error) {
+        console.warn('Date parsing error for task:', task.id, task.due_date);
+        return false;
+      }
     });
+    
+    // If there's a selected employee and the current user is an admin,
+    // filter tasks to show only those assigned to the selected employee
+    if (selectedEmployee && user?.role === 'admin') {
+      filteredTasks = filteredTasks.filter(task => task.assigned_to === selectedEmployee.id);
+    }
+    
+    return filteredTasks;
   };
 
   const value = {

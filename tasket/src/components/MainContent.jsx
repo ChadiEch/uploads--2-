@@ -5,15 +5,15 @@ import Dashboard from './Dashboard'
 import DepartmentList from './departments/DepartmentList'
 import EmployeeList from './employees/EmployeeList'
 import EmployeeDetail from './employees/EmployeeDetail'
-import Calendar from './Calendar'
-import TaskCalendar from './tasks/TaskCalendar'
+// import Calendar from './Calendar'  // Comment out the old calendar
+import EnhancedCalendar from './EnhancedCalendar'  // Use the new enhanced calendar
 import DayView from './DayView'
 import Reports from './Reports'
 import Profile from './Profile'
 import ProtectedRoute from './auth/ProtectedRoute'
 
 const MainContent = () => {
-  const { currentView, selectedEmployee } = useApp()
+  const { currentView } = useApp()
   const { isAdmin } = useAuth()
 
   const renderContent = () => {
@@ -43,9 +43,8 @@ const MainContent = () => {
           </ProtectedRoute>
         )
       case 'calendar':
-        // If there's a selected employee, show their specific task calendar
-        // Otherwise show the general calendar
-        return selectedEmployee ? <TaskCalendar /> : <Calendar />
+        // Always use the enhanced calendar with 3-step navigation
+        return <EnhancedCalendar />
       case 'day-view':
         return <DayView />
       case 'reports':
@@ -58,9 +57,8 @@ const MainContent = () => {
         return <Profile />
       case 'tasks':
       default:
-        // If there's a selected employee, show their specific task calendar
-        // Otherwise show the general calendar
-        return selectedEmployee ? <TaskCalendar /> : <Calendar />
+        // Always use the enhanced calendar with 3-step navigation
+        return <EnhancedCalendar />
     }
   }
 

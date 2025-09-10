@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { tasksAPI } from '../../lib/api'; // Import tasksAPI for file uploads
 
 const TaskForm = ({ task, employeeId, date, onClose }) => {
-  const { createTask, updateTask, deleteTask, userRole, currentUser, employees } = useApp();
+  const { createTask, updateTask, deleteTask, userRole, currentUser, employees, updateTaskState, addTaskState } = useApp();
   const isEditing = !!task?.id;
   const canEdit = userRole === 'admin' || (userRole === 'employee' && currentUser?.id === employeeId) || (!isEditing && userRole === 'employee' && !employeeId);
   const canDelete = userRole === 'admin' || (userRole === 'employee' && task?.created_by === currentUser?.id);
@@ -231,6 +231,13 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
             ...taskData,
             attachments: attachmentsForSubmission
           }, filesToUpload); // Pass files to be uploaded
+          
+          // Update the context state with the updated task
+          // We already have the updated task from our direct API call,
+          // so we just need to update the local state without making another API call
+          if (result.task) {
+            updateTaskState(result.task);
+          }
         } else {
           result = await updateTask(task.id, taskData);
         }
@@ -241,6 +248,11 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
             ...taskData,
             attachments: attachmentsForSubmission
           }, filesToUpload); // Pass files to be uploaded
+          
+          // Add the new task to the context state
+          if (result.task) {
+            addTaskState(result.task);
+          }
         } else {
           result = await createTask(taskData);
         }

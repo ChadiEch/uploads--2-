@@ -188,6 +188,18 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Update task state without making an API call
+  const updateTaskState = (updatedTask) => {
+    setTasks(prev => prev.map(task => 
+      task.id === updatedTask.id ? updatedTask : task
+    ));
+  };
+
+  // Add task to state without making an API call
+  const addTaskState = (newTask) => {
+    setTasks(prev => [newTask, ...prev]);
+  };
+
   // Department operations
   const addDepartment = async (departmentData) => {
     try {
@@ -469,6 +481,8 @@ export const AppProvider = ({ children }) => {
     createEmployee,
     updateEmployee,
     deleteEmployee,
+    updateTaskState,
+    addTaskState,
     
     // Function aliases for compatibility
     addTask: createTask,

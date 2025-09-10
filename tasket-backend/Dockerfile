@@ -16,8 +16,8 @@ COPY . .
 # Create uploads directory
 RUN mkdir -p uploads
 
-# Expose port
-EXPOSE 5002
+# Expose port (Railway will set PORT environment variable)
+EXPOSE $PORT
 
 # Start the application
 CMD ["node", "server.js"]

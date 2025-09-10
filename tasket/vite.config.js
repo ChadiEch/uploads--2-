@@ -27,6 +27,17 @@ export default defineConfig({
       }
     }
   },
+  // Add base configuration for production deployment
+  base: '/',
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  },
   test: {
     globals: true,
     environment: 'jsdom',

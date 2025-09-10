@@ -1,0 +1,17 @@
+[build]
+builder = "DOCKER_COMPOSE"
+dockerfilePath = "railway.docker-compose.yml"
+
+[deploy]
+numReplicas = 1
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+healthcheckPath = "/health"
+
+# Backend service configuration
+[deploy.backend]
+port = 5002
+
+# Frontend service configuration
+[deploy.frontend]
+port = 3000

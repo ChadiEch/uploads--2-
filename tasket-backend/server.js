@@ -150,7 +150,8 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Use port 5002 instead of 5000 or 5001 to avoid conflicts
+// Use port from environment variable (Railway) or default to 5002
+// Railway sets the PORT environment variable
 const PORT = process.env.PORT || 5002;
 
 // Database connection and server start
@@ -165,7 +166,7 @@ const startServer = async () => {
     console.log('✅ Database synchronized successfully.');
     
     // Start server
-    server.listen(PORT, () => {
+    server.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV}`);
       console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL}`);

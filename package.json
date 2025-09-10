@@ -10,7 +10,7 @@
   "scripts": {
     "postinstall": "cd tasket-backend && npm install && cd ../tasket && npm install",
     "build": "cd tasket && npm run build",
-    "start": "cd tasket-backend && npm start",
+    "start": "node tasket-backend/server.js",
     "dev": "cd tasket-backend && npm run dev",
     "seed": "cd tasket-backend && npm run seed:prod"
   },

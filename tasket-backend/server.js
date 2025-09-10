@@ -169,11 +169,26 @@ const startServer = async () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV}`);
       console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL}`);
-      console.log(`💾 Database: SQLite (development mode)`);
+      
+      // Show which database we're using
+      if (process.env.DATABASE_URL) {
+        console.log(`💾 Database: PostgreSQL (via DATABASE_URL)`);
+      } else if (process.env.DB_NAME) {
+        console.log(`💾 Database: PostgreSQL (${process.env.DB_NAME})`);
+      } else {
+        console.log(`💾 Database: SQLite (development mode)`);
+      }
+      
       console.log(`🔌 WebSocket server enabled`);
     });
   } catch (error) {
-    console.error('❌ Unable to start server:', error);
+    console.error('❌ Unable to start server:', error.name, error.message);
+    console.error('Details:', {
+      DATABASE_URL: process.env.DATABASE_URL ? 'Present' : 'Not set',
+      DB_NAME: process.env.DB_NAME,
+      DB_HOST: process.env.DB_HOST,
+      DB_PORT: process.env.DB_PORT
+    });
     process.exit(1);
   }
 };

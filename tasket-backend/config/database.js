@@ -3,7 +3,8 @@ require('dotenv').config();
 
 let sequelize;
 
-if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
+// Check if we're on Railway (uses DATABASE_URL) or local development
+if (process.env.DATABASE_URL) {
   // Production with DATABASE_URL (Heroku, Railway, etc.)
   sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'postgres',
@@ -17,14 +18,14 @@ if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
     }
   });
 } else if (process.env.DB_NAME && process.env.DB_USER && process.env.DB_PASSWORD) {
-  // PostgreSQL configuration
+  // PostgreSQL configuration for local development
   sequelize = new Sequelize(
     process.env.DB_NAME,
     process.env.DB_USER,
     process.env.DB_PASSWORD,
     {
-      host: process.env.DB_HOST,
-      port: process.env.DB_PORT,
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 5432,
       dialect: 'postgres',
       logging: process.env.NODE_ENV === 'development' ? console.log : false,
       pool: {
@@ -36,7 +37,7 @@ if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
     }
   );
 } else {
-  // SQLite fallback for development
+  // SQLite fallback for local development
   sequelize = new Sequelize({
     dialect: 'sqlite',
     storage: './database.sqlite',

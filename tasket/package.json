@@ -1,7 +1,7 @@
 {
-  "name": "react-template",
+  "name": "tasket",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "packageManager": "pnpm@10.10.0",
   "scripts": {
@@ -12,7 +12,12 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:full": "concurrently \"npm run dev\" \"npm run dev:backend\"",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down"
   },
   "dependencies": {
     "@emotion/react": "^11.13.3",
@@ -36,6 +41,7 @@
     "@vitejs/plugin-react": "^4.3.1",
     "@vitest/ui": "^1.0.4",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^8.2.0",
     "eslint": "^9.9.0",
     "eslint-plugin-react": "^7.35.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",

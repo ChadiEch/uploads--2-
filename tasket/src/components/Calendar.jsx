@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useApp } from '../context/AppContext'
 
 const Calendar = () => {
-  const { tasks, navigateToDayView } = useApp()
+  const { tasks, navigateToDayView, selectedEmployee, user, isAdmin } = useApp()
   const [currentDate, setCurrentDate] = useState(new Date())
 
   const today = new Date()
@@ -38,7 +38,8 @@ const Calendar = () => {
     const dayStr = String(targetDate.getDate()).padStart(2, '0')
     const targetDateStr = `${year}-${month}-${dayStr}`
     
-    return tasks.filter(task => {
+    // Filter tasks by date first
+    let filteredTasks = tasks.filter(task => {
       if (!task.due_date) return false
       
       // Handle different date formats and ensure proper comparison
@@ -62,6 +63,13 @@ const Calendar = () => {
         return false
       }
     })
+    
+    // If there's a selected employee, filter tasks to show only those assigned to the selected employee
+    if (selectedEmployee) {
+      filteredTasks = filteredTasks.filter(task => task.assigned_to === selectedEmployee.id)
+    }
+    
+    return filteredTasks
   }
 
   const handleDayClick = (day) => {
@@ -88,10 +96,10 @@ const Calendar = () => {
   return (
     <div className="p-4 md:p-6 pb-20 md:pb-6">
       <div className="bg-white rounded-lg shadow-sm p-4 md:p-6">
-        {/* Calendar Header */}
+        {/* Calendar Header */ }
         <div className="flex items-center justify-between mb-4 md:mb-6">
           <h2 className="text-lg md:text-xl font-semibold text-gray-900">
-            {monthNames[currentMonth]} {currentYear}
+            {selectedEmployee ? `${selectedEmployee.name}'s Calendar` : `${monthNames[currentMonth]} ${currentYear}`}
           </h2>
           <div className="flex space-x-1 md:space-x-2">
             <button
@@ -119,7 +127,7 @@ const Calendar = () => {
           </div>
         </div>
 
-        {/* Day Names */}
+        {/* Day Names */ }
         <div className="grid grid-cols-7 gap-1 mb-2">
           {dayNames.map(day => (
             <div key={day} className="p-1 md:p-2 text-center text-xs md:text-sm font-medium text-gray-500">
@@ -129,7 +137,7 @@ const Calendar = () => {
           ))}
         </div>
 
-        {/* Calendar Grid */}
+        {/* Calendar Grid */ }
         <div className="grid grid-cols-7 gap-1">
           {calendarDays.map((day, index) => {
             const dayTasks = getTasksForDay(day)
@@ -155,7 +163,7 @@ const Calendar = () => {
                     </div>
                     {dayTasks.length > 0 && (
                       <div className="mt-1 space-y-1">
-                        {/* Show fewer tasks on mobile */}
+                        {/* Show fewer tasks on mobile */ }
                         {dayTasks.slice(0, window.innerWidth < 768 ? 1 : 2).map(task => (
                           <div
                             key={task.id}

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useApp } from '../context/AppContext'
 
 const EnhancedCalendar = () => {
-  const { tasks, navigateToDayView } = useApp()
+  const { tasks, navigateToDayView, selectedEmployee } = useApp()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState('year') // 'year', 'month', or 'days'
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
@@ -59,7 +59,8 @@ const EnhancedCalendar = () => {
     const dayStr = String(targetDate.getDate()).padStart(2, '0')
     const targetDateStr = `${year}-${month}-${dayStr}`
     
-    return tasks.filter(task => {
+    // Filter tasks by date first
+    let filteredTasks = tasks.filter(task => {
       if (!task.due_date) return false
       
       // Handle different date formats and ensure proper comparison
@@ -83,6 +84,13 @@ const EnhancedCalendar = () => {
         return false
       }
     })
+    
+    // If there's a selected employee, filter tasks to show only those assigned to the selected employee
+    if (selectedEmployee) {
+      filteredTasks = filteredTasks.filter(task => task.assigned_to === selectedEmployee.id)
+    }
+    
+    return filteredTasks
   }
 
   const handleYearSelect = (year) => {
@@ -170,9 +178,10 @@ const EnhancedCalendar = () => {
         {/* Calendar Header */}
         <div className="flex items-center justify-between mb-4 md:mb-6">
           <h2 className="text-lg md:text-xl font-semibold text-gray-900">
-            {view === 'year' && 'Select Year'}
-            {view === 'month' && `${selectedYear}`}
-            {view === 'days' && `${monthNames[selectedMonth]} ${selectedYear}`}
+            {selectedEmployee ? `${selectedEmployee.name}'s Calendar` : 
+             view === 'year' ? 'Select Year' :
+             view === 'month' ? `${selectedYear}` :
+             `${monthNames[selectedMonth]} ${selectedYear}`}
           </h2>
           <div className="flex space-x-1 md:space-x-2">
             <button

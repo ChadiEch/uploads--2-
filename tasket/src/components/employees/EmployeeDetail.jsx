@@ -9,7 +9,8 @@ const EmployeeDetail = () => {
     departments, 
     getTasksByEmployee, 
     navigateToDepartmentEmployees,
-    isAdmin 
+    isAdmin,
+    navigateToTasks
   } = useApp();
   
   const [isEditing, setIsEditing] = useState(false);
@@ -222,7 +223,8 @@ const EmployeeDetail = () => {
                 </button>
                 <button
                   onClick={() => {
-                    // This would navigate to the calendar view for this employee
+                    // Navigate to the calendar view for this employee
+                    navigateToTasks(employee.id);
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
                 >

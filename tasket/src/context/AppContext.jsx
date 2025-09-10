@@ -378,6 +378,12 @@ export const AppProvider = ({ children }) => {
     setCurrentView('calendar'); // Use the enhanced calendar with 3-step navigation
   };
 
+  const navigateToCalendar = () => {
+    setSelectedDate(null);
+    setSelectedEmployee(null);
+    setCurrentView('calendar');
+  };
+
   // Utility functions
   const getDepartmentById = (id) => {
     return departments.find(dept => dept.id === id);
@@ -399,11 +405,6 @@ export const AppProvider = ({ children }) => {
   const navigateToDayView = (date) => {
     setSelectedDate(date);
     setCurrentView('day-view');
-  };
-
-  const navigateToCalendar = () => {
-    setSelectedDate(null);
-    setCurrentView('calendar');
   };
 
   const getTasksForDate = (date) => {
@@ -440,9 +441,9 @@ export const AppProvider = ({ children }) => {
       }
     });
     
-    // If there's a selected employee and the current user is an admin,
-    // filter tasks to show only those assigned to the selected employee
-    if (selectedEmployee && user?.role === 'admin') {
+    // If there's a selected employee, filter tasks to show only those assigned to the selected employee
+    // This should work for all users, not just admins
+    if (selectedEmployee) {
       filteredTasks = filteredTasks.filter(task => task.assigned_to === selectedEmployee.id);
     }
     

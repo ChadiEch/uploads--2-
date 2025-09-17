@@ -60,11 +60,11 @@ const Task = sequelize.define('Task', {
     allowNull: true
   },
   estimated_hours: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.DECIMAL(5, 2),
     allowNull: false
   },
   actual_hours: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.DECIMAL(5, 2),
     allowNull: true
   },
   tags: {

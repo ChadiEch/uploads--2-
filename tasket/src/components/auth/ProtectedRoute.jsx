@@ -1,8 +1,8 @@
 import React from 'react';
-import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
-  const { currentUser, userRole } = useApp();
+  const { user: currentUser, userRole } = useAuth();
 
   if (!currentUser) {
     return null; // Login component will be shown instead

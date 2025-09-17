@@ -27,10 +27,47 @@ const EnhancedCalendar = () => {
     'July', 'August', 'September', 'October', 'November', 'December'
   ]
 
-  // Generate calendar days for the selected month
-  const generateCalendarDays = () => {
-    const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1)
-    const lastDayOfMonth = new Date(selectedYear, selectedMonth + 1, 0)
+  // Check if a date has tasks for the selected employee
+  const hasTasksOnDate = (year, month, day) => {
+    const targetDate = new Date(year, month, day)
+    const yearStr = targetDate.getFullYear()
+    const monthStr = String(targetDate.getMonth() + 1).padStart(2, '0')
+    const dayStr = String(targetDate.getDate()).padStart(2, '0')
+    const targetDateStr = `${yearStr}-${monthStr}-${dayStr}`
+
+    // Filter tasks by created_at date instead of due_date
+    let filteredTasks = tasks.filter(task => {
+      if (!task.created_at) return false
+      
+      let taskDateStr
+      try {
+        // Parse the date with timezone awareness
+        const taskCreatedDate = new Date(task.created_at)
+        
+        // Extract date part using local time (this handles timezone conversion properly)
+        const taskYear = taskCreatedDate.getFullYear()
+        const taskMonth = String(taskCreatedDate.getMonth() + 1).padStart(2, '0')
+        const taskDay = String(taskCreatedDate.getDate()).padStart(2, '0')
+        taskDateStr = `${taskYear}-${taskMonth}-${taskDay}`
+        
+        return taskDateStr === targetDateStr
+      } catch (error) {
+        return false
+      }
+    })
+    
+    // If there's a selected employee, filter tasks to show only those assigned to the selected employee
+    if (selectedEmployee) {
+      filteredTasks = filteredTasks.filter(task => task.assigned_to === selectedEmployee.id)
+    }
+    
+    return filteredTasks.length > 0
+  }
+
+  // Generate calendar days for a specific month
+  const generateCalendarDays = (year, month) => {
+    const firstDayOfMonth = new Date(year, month, 1)
+    const lastDayOfMonth = new Date(year, month + 1, 0)
     const firstDayWeekday = firstDayOfMonth.getDay()
     const daysInMonth = lastDayOfMonth.getDate()
 
@@ -59,28 +96,25 @@ const EnhancedCalendar = () => {
     const dayStr = String(targetDate.getDate()).padStart(2, '0')
     const targetDateStr = `${year}-${month}-${dayStr}`
     
-    // Filter tasks by date first
+    // Filter tasks by created_at date instead of due_date
     let filteredTasks = tasks.filter(task => {
-      if (!task.due_date) return false
+      if (!task.created_at) return false
       
       // Handle different date formats and ensure proper comparison
       let taskDateStr
       try {
-        // If due_date is already a date string in YYYY-MM-DD format
-        if (typeof task.due_date === 'string' && task.due_date.includes('-') && !task.due_date.includes('T')) {
-          taskDateStr = task.due_date
-        } else {
-          // Parse as full datetime and extract date part using local time
-          const taskDueDate = new Date(task.due_date)
-          const taskYear = taskDueDate.getFullYear()
-          const taskMonth = String(taskDueDate.getMonth() + 1).padStart(2, '0')
-          const taskDay = String(taskDueDate.getDate()).padStart(2, '0')
-          taskDateStr = `${taskYear}-${taskMonth}-${taskDay}`
-        }
+        // Parse the date with timezone awareness
+        const taskCreatedDate = new Date(task.created_at)
+        
+        // Extract date part using local time (this handles timezone conversion properly)
+        const taskYear = taskCreatedDate.getFullYear()
+        const taskMonth = String(taskCreatedDate.getMonth() + 1).padStart(2, '0')
+        const taskDay = String(taskCreatedDate.getDate()).padStart(2, '0')
+        taskDateStr = `${taskYear}-${taskMonth}-${taskDay}`
         
         return taskDateStr === targetDateStr
       } catch (error) {
-        console.warn('Date parsing error for task:', task.id, task.due_date)
+        console.warn('Date parsing error for task:', task.id, task.created_at)
         return false
       }
     })
@@ -95,7 +129,7 @@ const EnhancedCalendar = () => {
 
   const handleYearSelect = (year) => {
     setSelectedYear(year)
-    setView('month')
+    // Keep view as 'year' to show all months on the same page
   }
 
   const handleMonthSelect = (monthIndex) => {
@@ -109,6 +143,19 @@ const EnhancedCalendar = () => {
     navigateToDayView(selectedDate)
   }
 
+  // Handle day click in year view
+  const handleYearViewDayClick = (year, month, day) => {
+    if (!day) return
+    const selectedDate = new Date(year, month, day)
+    navigateToDayView(selectedDate)
+  }
+
+  // Handle month click in year view (navigate to month view)
+  const handleYearViewMonthClick = (monthIndex) => {
+    setSelectedMonth(monthIndex)
+    setView('days')
+  }
+
   const navigateToToday = () => {
     const now = new Date()
     setSelectedYear(now.getFullYear())
@@ -119,11 +166,17 @@ const EnhancedCalendar = () => {
 
   const goBack = () => {
     if (view === 'month') {
-      setView('year')
+      setView('year');
     } else if (view === 'days') {
-      setView('month')
+      setView('year');
     }
-  }
+    // Keep selectedEmployee context when going back
+  };
+
+  const navigateToAllEmployeesCalendar = () => {
+    // Navigate to calendar view but keep the selected employee context
+    setCurrentView('calendar');
+  };
 
   const openTaskView = (task) => {
     setViewingTask(task)
@@ -170,7 +223,7 @@ const EnhancedCalendar = () => {
     }
   }
 
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
   return (
     <div className="p-4 md:p-6 pb-20 md:pb-6">
@@ -179,14 +232,14 @@ const EnhancedCalendar = () => {
         <div className="flex items-center justify-between mb-4 md:mb-6">
           <h2 className="text-lg md:text-xl font-semibold text-gray-900">
             {selectedEmployee ? `${selectedEmployee.name}'s Calendar` : 
-             view === 'year' ? 'Select Year' :
+             view === 'year' ? `Year ${selectedYear}` :
              view === 'month' ? `${selectedYear}` :
              `${monthNames[selectedMonth]} ${selectedYear}`}
           </h2>
           <div className="flex space-x-1 md:space-x-2">
             {selectedEmployee && (
               <button
-                onClick={navigateToCalendar}
+                onClick={navigateToAllEmployeesCalendar}
                 className="px-2 md:px-3 py-2 text-xs md:text-sm border border-gray-300 rounded-md hover:bg-gray-50 touch-manipulation"
               >
                 View All Employees
@@ -210,22 +263,106 @@ const EnhancedCalendar = () => {
           </div>
         </div>
 
-        {/* Year View */}
+        {/* Year Selection View */}
         {view === 'year' && (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-            {generateYears().map(year => (
-              <button
-                key={year}
-                onClick={() => handleYearSelect(year)}
-                className={`p-3 rounded-md border text-center ${
-                  year === selectedYear 
-                    ? 'bg-indigo-600 text-white border-indigo-600' 
-                    : 'bg-white border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                {year}
-              </button>
-            ))}
+          <div className="space-y-6">
+            {/* Year Selector */}
+            <div className="flex flex-wrap gap-2 justify-center">
+              {generateYears().map(year => (
+                <button
+                  key={year}
+                  onClick={() => handleYearSelect(year)}
+                  className={`px-3 py-1 rounded-md ${
+                    year === selectedYear
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 hover:bg-gray-200'
+                  }`}
+                >
+                  {year}
+                </button>
+              ))}
+            </div>
+            
+            {/* All Months with Days - iPhone-like layout (3 per row) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {monthNames.map((month, monthIndex) => {
+                const calendarDays = generateCalendarDays(selectedYear, monthIndex)
+                const daysInMonth = new Date(selectedYear, monthIndex + 1, 0).getDate()
+                
+                // Check if current month has any tasks
+                const hasTasksInMonth = (() => {
+                  for (let day = 1; day <= daysInMonth; day++) {
+                    if (hasTasksOnDate(selectedYear, monthIndex, day)) {
+                      return true
+                    }
+                  }
+                  return false
+                })()
+                
+                // Check if this is the current month and year
+                const isCurrentMonth = selectedYear === today.getFullYear() && monthIndex === today.getMonth()
+                
+                return (
+                  <div 
+                    key={monthIndex} 
+                    className="border border-gray-200 rounded-lg p-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleYearViewMonthClick(monthIndex)}
+                  >
+                    {/* Month Header */}
+                    <div className={`text-center py-2 mb-2 rounded-md ${isCurrentMonth ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
+                      <h3 className="font-bold text-sm">{month.substring(0, 3)}</h3>
+                    </div>
+                    
+                    {/* Day Names */}
+                    <div className="grid grid-cols-7 gap-1 mb-1">
+                      {dayNames.map(day => (
+                        <div key={day} className="p-1 text-center text-xs font-medium text-gray-500">
+                          {day}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Calendar Grid */}
+                    <div className="grid grid-cols-7 gap-1">
+                      {calendarDays.map((day, index) => {
+                        const isToday = day && 
+                          selectedYear === today.getFullYear() && 
+                          monthIndex === today.getMonth() && 
+                          day === today.getDate()
+                        
+                        // Check if this day has tasks
+                        const hasTasks = day && hasTasksOnDate(selectedYear, monthIndex, day)
+                        
+                        return (
+                          <div
+                            key={index}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleYearViewDayClick(selectedYear, monthIndex, day);
+                            }}
+                            className={`
+                              h-6 flex items-center justify-center text-xs cursor-pointer rounded-full
+                              ${day ? 'hover:bg-gray-200' : ''}
+                              ${isToday ? 'bg-blue-500 text-white' : 'text-gray-700'}
+                              ${hasTasks && !isToday ? 'relative font-bold' : ''}
+                            `}
+                          >
+                            {day && (
+                              <>
+                                {day}
+                                {hasTasks && !isToday && (
+                                  <div className="absolute bottom-0.5 w-1 h-1 bg-red-500 rounded-full"></div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 
@@ -253,7 +390,7 @@ const EnhancedCalendar = () => {
           <>
             {/* Day Names */}
             <div className="grid grid-cols-7 gap-1 mb-2">
-              {dayNames.map(day => (
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                 <div key={day} className="p-1 md:p-2 text-center text-xs md:text-sm font-medium text-gray-500">
                   <span className="hidden sm:inline">{day}</span>
                   <span className="sm:hidden">{day.slice(0, 1)}</span>
@@ -263,25 +400,32 @@ const EnhancedCalendar = () => {
 
             {/* Calendar Grid */}
             <div className="grid grid-cols-7 gap-1">
-              {generateCalendarDays().map((day, index) => {
+              {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
                 const dayTasks = getTasksForDay(day)
                 const isToday = day && 
                   selectedYear === today.getFullYear() && 
                   selectedMonth === today.getMonth() && 
                   day === today.getDate()
+                
+                // Check if this day has tasks (for circle indicator)
+                const hasTasks = day && hasTasksOnDate(selectedYear, selectedMonth, day)
 
                 return (
                   <div
                     key={index}
                     onClick={() => handleDayClick(day)}
                     className={`
-                      min-h-[60px] md:min-h-[80px] p-1 md:p-2 border border-gray-100 cursor-pointer hover:bg-gray-50 touch-manipulation
+                      min-h-[60px] md:min-h-[80px] p-1 md:p-2 border border-gray-100 cursor-pointer hover:bg-gray-50 touch-manipulation relative
                       ${day ? 'bg-white' : 'bg-gray-50'}
                       ${isToday ? 'bg-blue-50 border-blue-200' : ''}
                     `}
                   >
                     {day && (
                       <>
+                        {/* Circle indicator for days with tasks */}
+                        {hasTasks && (
+                          <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+                        )}
                         <div className={`text-xs md:text-sm font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
                           {day}
                         </div>

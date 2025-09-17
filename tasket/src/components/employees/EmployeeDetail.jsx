@@ -18,7 +18,7 @@ const EmployeeDetail = () => {
   if (!selectedEmployee) {
     return (
       <div className="p-6">
-        <div className="text-center">
+        <div className="text-center py-12">
           <h2 className="text-2xl font-semibold text-gray-900 mb-4">No Employee Selected</h2>
           <p className="text-gray-600">Please select an employee to view their profile.</p>
         </div>
@@ -46,11 +46,11 @@ const EmployeeDetail = () => {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex items-center mb-6">
+    <div className="p-4 md:p-6">
+      <div className="flex items-center mb-6 mt-2">
         <button
           onClick={() => navigateToDepartmentEmployees(employee.department_id)}
-          className="mr-2 text-gray-500 hover:text-gray-700"
+          className="mr-2 text-gray-500 hover:text-gray-700 transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -61,7 +61,7 @@ const EmployeeDetail = () => {
         {isAdmin && !isEditing && (
           <button
             onClick={handleEdit}
-            className="ml-auto bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center"
+            className="ml-auto bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center transition-all duration-200"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
               <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
@@ -77,11 +77,11 @@ const EmployeeDetail = () => {
           onClose={closeForm}
         />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
           {/* Employee Information */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-6">Employee Information</h2>
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+              <h2 className="text-lg font-medium text-gray-900 mb-6 pb-2 border-b border-gray-200">Employee Information</h2>
               
               <div className="flex flex-col md:flex-row items-center mb-6">
                 {/* Employee Photo */}
@@ -174,8 +174,8 @@ const EmployeeDetail = () => {
 
           {/* Task Statistics */}
           <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Task Statistics</h2>
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+              <h2 className="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-200">Task Statistics</h2>
               
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -210,14 +210,14 @@ const EmployeeDetail = () => {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+              <h3 className="text-lg font-medium text-gray-900 mb-4 pb-2 border-b border-gray-200">Quick Actions</h3>
               <div className="space-y-3">
                 <button
                   onClick={() => {
                     // This would navigate to tasks view for this employee
                   }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
                 >
                   View All Tasks
                 </button>
@@ -226,7 +226,7 @@ const EmployeeDetail = () => {
                     // Navigate to the calendar view for this employee
                     navigateToTasks(employee.id);
                   }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
                 >
                   View Calendar
                 </button>

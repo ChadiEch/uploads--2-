@@ -4,7 +4,7 @@ import TaskForm from './tasks/TaskForm'
 import { useWebSocket } from '../context/WebSocketContext'
 
 const DayView = () => {
-  const { selectedDate, selectedEmployee, getTasksForDate, navigateToCalendar, currentUser, deleteTask, isAdmin, tasks } = useApp()
+  const { selectedDate, selectedEmployee, getTasksForDate, navigateToCalendar, navigateToTasks, currentUser, deleteTask, isAdmin, tasks } = useApp()
   const { subscribeToTaskUpdates, connected } = useWebSocket()
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
@@ -148,13 +148,24 @@ const DayView = () => {
     }
   }
 
+  // Function to get thumbnail for attachment
+  const getAttachmentThumbnail = (attachment) => {
+    if (attachment.type === 'photo') {
+      return getAttachmentUrl(attachment);
+    } else if (attachment.type === 'document') {
+      return '/document-icon.png'; // You can replace this with an actual document icon
+    } else {
+      return '/link-icon.png'; // You can replace this with an actual link icon
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 pb-20 md:pb-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 space-y-4 sm:space-y-0">
         <div>
           <button
-            onClick={navigateToCalendar}
+            onClick={() => selectedEmployee && isAdmin ? navigateToTasks(selectedEmployee.id) : navigateToCalendar()}
             className="flex items-center text-indigo-600 hover:text-indigo-800 mb-2 touch-manipulation"
           >
             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,7 +254,7 @@ const DayView = () => {
                     <p className="text-gray-600 mb-3 text-sm md:text-base">{task.description}</p>
                   )}
                   
-                  <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 text-xs md:text-sm text-gray-500">
+                  <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 text-xs md:text-sm text-gray-500 mb-3">
                     <div className="flex items-center">
                       <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -266,11 +277,58 @@ const DayView = () => {
                       </svg>
                       Priority: {task.priority}
                     </div>
+                    
+                    {/* Estimated Hours */}
+                    {task.estimated_hours && (
+                      <div className="flex items-center">
+                        <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {task.estimated_hours} hrs
+                      </div>
+                    )}
                   </div>
                   
-                  {/* Attachments Preview */}
+                  {/* Attachments Preview with Thumbnails */}
                   {task.attachments && task.attachments.length > 0 && (
                     <div className="mt-3">
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {task.attachments.slice(0, 3).map((attachment) => (
+                          <div 
+                            key={attachment.id} 
+                            className="relative cursor-pointer"
+                            onClick={() => openAttachment(attachment)}
+                          >
+                            {attachment.type === 'photo' ? (
+                              <img 
+                                src={getAttachmentUrl(attachment)} 
+                                alt={attachment.name}
+                                className="w-16 h-16 object-cover rounded border border-gray-200"
+                              />
+                            ) : (
+                              <div className="w-16 h-16 flex items-center justify-center bg-gray-100 rounded border border-gray-200">
+                                {attachment.type === 'document' ? (
+                                  <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                  </svg>
+                                ) : (
+                                  <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                  </svg>
+                                )}
+                              </div>
+                            )}
+                            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs text-center truncate px-1">
+                              {attachment.type === 'photo' ? '📷' : attachment.type === 'document' ? '📄' : '🔗'}
+                            </div>
+                          </div>
+                        ))}
+                        {task.attachments.length > 3 && (
+                          <div className="w-16 h-16 flex items-center justify-center bg-gray-100 rounded border border-gray-200">
+                            <span className="text-xs text-gray-500">+{task.attachments.length - 3}</span>
+                          </div>
+                        )}
+                      </div>
                       <button 
                         onClick={() => openAttachmentsView(task)}
                         className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center"
@@ -278,7 +336,7 @@ const DayView = () => {
                         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                         </svg>
-                        View Attachments ({task.attachments.length})
+                        View All Attachments ({task.attachments.length})
                       </button>
                     </div>
                   )}

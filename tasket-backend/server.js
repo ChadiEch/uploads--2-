@@ -87,6 +87,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
+  console.log('Health check endpoint hit');
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
@@ -156,16 +157,20 @@ const PORT = process.env.PORT || 5002;
 
 // Database connection and server start
 const startServer = async () => {
+  console.log('Starting server initialization...');
   try {
+    console.log('Attempting database connection...');
     // Test database connection
     await sequelize.authenticate();
     console.log('✅ Database connection established successfully.');
     
+    console.log('Synchronizing database...');
     // Sync database (don't force recreate to preserve seeded data)
     await sequelize.sync({ alter: process.env.NODE_ENV === 'development' });
     console.log('✅ Database synchronized successfully.');
     
     // Start server
+    console.log(`Attempting to start server on port ${PORT}`);
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV}`);
@@ -184,6 +189,7 @@ const startServer = async () => {
     });
   } catch (error) {
     console.error('❌ Unable to start server:', error.name, error.message);
+    console.error('Error stack:', error.stack);
     console.error('Details:', {
       DATABASE_URL: process.env.DATABASE_URL ? 'Present' : 'Not set',
       DB_NAME: process.env.DB_NAME,

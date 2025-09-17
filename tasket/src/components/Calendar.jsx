@@ -38,28 +38,25 @@ const Calendar = () => {
     const dayStr = String(targetDate.getDate()).padStart(2, '0')
     const targetDateStr = `${year}-${month}-${dayStr}`
     
-    // Filter tasks by date first
+    // Filter tasks by created_at date instead of due_date
     let filteredTasks = tasks.filter(task => {
-      if (!task.due_date) return false
+      if (!task.created_at) return false
       
-      // Handle different date formats and ensure proper comparison
+      // Handle different date formats and ensure proper comparison with timezone awareness
       let taskDateStr
       try {
-        // If due_date is already a date string in YYYY-MM-DD format
-        if (typeof task.due_date === 'string' && task.due_date.includes('-') && !task.due_date.includes('T')) {
-          taskDateStr = task.due_date
-        } else {
-          // Parse as full datetime and extract date part using local time
-          const taskDueDate = new Date(task.due_date)
-          const taskYear = taskDueDate.getFullYear()
-          const taskMonth = String(taskDueDate.getMonth() + 1).padStart(2, '0')
-          const taskDay = String(taskDueDate.getDate()).padStart(2, '0')
-          taskDateStr = `${taskYear}-${taskMonth}-${taskDay}`
-        }
+        // Parse the date with timezone awareness
+        const taskCreatedDate = new Date(task.created_at)
+        
+        // Extract date part using local time (this handles timezone conversion properly)
+        const taskYear = taskCreatedDate.getFullYear()
+        const taskMonth = String(taskCreatedDate.getMonth() + 1).padStart(2, '0')
+        const taskDay = String(taskCreatedDate.getDate()).padStart(2, '0')
+        taskDateStr = `${taskYear}-${taskMonth}-${taskDay}`
         
         return taskDateStr === targetDateStr
       } catch (error) {
-        console.warn('Date parsing error for task:', task.id, task.due_date)
+        console.warn('Date parsing error for task:', task.id, task.created_at)
         return false
       }
     })

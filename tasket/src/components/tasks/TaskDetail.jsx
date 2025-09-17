@@ -153,6 +153,24 @@ const TaskDetail = ({ task, onClose }) => {
                   <p className="text-gray-800 mt-1">{task.estimated_hours}</p>
                 </div>
               )}
+              {task.actual_hours !== undefined && task.actual_hours !== null && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">Actual Hours</h4>
+                  <p className="text-gray-800 mt-1">{task.actual_hours}</p>
+                </div>
+              )}
+              {task.start_date && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">Start Date</h4>
+                  <p className="text-gray-800 mt-1">{formatDate(task.start_date)}</p>
+                </div>
+              )}
+              {task.completed_date && (
+                <div>
+                  <h4 className="text-sm font-medium text-gray-500">Completed Date</h4>
+                  <p className="text-gray-800 mt-1">{formatDate(task.completed_date)}</p>
+                </div>
+              )}
             </div>
             
             {task.attachments && task.attachments.length > 0 && (

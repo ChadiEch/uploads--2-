@@ -11,9 +11,11 @@ import DayView from './DayView'
 import Reports from './Reports'
 import Profile from './Profile'
 import ProtectedRoute from './auth/ProtectedRoute'
+import SearchResults from './SearchResults'
+import FilteredTasksView from './FilteredTasksView'
 
 const MainContent = () => {
-  const { currentView } = useApp()
+  const { currentView, searchTerm, navigateTo } = useApp()
   const { isAdmin } = useAuth()
 
   const renderContent = () => {
@@ -55,6 +57,10 @@ const MainContent = () => {
         )
       case 'profile':
         return <Profile />
+      case 'search-results':
+        return <SearchResults onBack={() => navigateTo('calendar')} />
+      case 'filtered-tasks':
+        return <FilteredTasksView />
       case 'tasks':
       default:
         // Always use the enhanced calendar with 3-step navigation

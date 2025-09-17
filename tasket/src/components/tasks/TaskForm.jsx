@@ -24,9 +24,9 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
     priority: task?.priority || 'medium',
     status: task?.status || 'planned',
     assigned_to: task?.assigned_to || employeeId || currentUser?.id,
-    estimated_hours: task?.estimated_hours !== undefined && task?.estimated_hours !== null ? parseInt(task.estimated_hours, 10) : 1,
+    estimated_hours: task?.estimated_hours !== undefined && task?.estimated_hours !== null ? task.estimated_hours : 1.00,
     department_id: task?.department_id || currentUser?.department_id,
-    attachments: task?.attachments || [] // Add attachments to form data
+    attachments: task?.attachments || []
   });
 
   const [errors, setErrors] = useState({
@@ -50,7 +50,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
         priority: task.priority || 'medium',
         status: task.status || 'planned',
         assigned_to: task.assigned_to || employeeId || currentUser?.id,
-        estimated_hours: task.estimated_hours !== undefined && task.estimated_hours !== null ? parseInt(task.estimated_hours, 10) : 1,
+        estimated_hours: task.estimated_hours !== undefined && task.estimated_hours !== null ? task.estimated_hours : 1.00,
         department_id: task.department_id || currentUser?.department_id,
         attachments: task.attachments || []
       });
@@ -148,10 +148,10 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
     if (!isAdmin && !formData.assigned_to && !isEditing) {
       newErrors.assigned_to = 'Assigned employee is required';
     }
-    // Check if estimated_hours is provided and is a valid number >= 1
-    const estimatedHours = formData.estimated_hours !== undefined && formData.estimated_hours !== null && formData.estimated_hours !== '' ? parseInt(formData.estimated_hours, 10) : 1;
-    if (isNaN(estimatedHours) || estimatedHours < 1) {
-      newErrors.estimated_hours = 'Estimated hours is required and must be at least 1';
+    // Check if estimated_hours is provided and is a valid number >= 0.01
+    const estimatedHours = formData.estimated_hours !== undefined && formData.estimated_hours !== null && formData.estimated_hours !== '' ? parseFloat(formData.estimated_hours) : 1.00;
+    if (isNaN(estimatedHours) || estimatedHours < 0.01) {
+      newErrors.estimated_hours = 'Estimated hours is required and must be at least 0.01';
     }
     
     setErrors(newErrors);
@@ -171,7 +171,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
       // Prepare data with proper type conversion
       const taskData = {
         ...formData,
-        estimated_hours: formData.estimated_hours !== undefined && formData.estimated_hours !== null && formData.estimated_hours !== '' ? parseInt(formData.estimated_hours, 10) : 1 // Ensure proper integer conversion
+        estimated_hours: formData.estimated_hours !== undefined && formData.estimated_hours !== null && formData.estimated_hours !== '' ? parseFloat(formData.estimated_hours) : 1.00 // Ensure proper float conversion
       };
     
       // For admin, allow assignment to any employee or no assignment (backend will handle)
@@ -409,11 +409,13 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                   className={`w-full p-2 border rounded-md border-gray-300 ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 />
               </div>
+            </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="estimated_hours" className="block text-sm font-medium text-gray-700 mb-1">Estimated Hours *</label>
                 <input
-                  type="number"
+                  type="text"
                   id="estimated_hours"
                   name="estimated_hours"
                   value={formData.estimated_hours}
@@ -421,8 +423,6 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                   disabled={!canEdit}
                   className={`w-full p-2 border rounded-md ${errors.estimated_hours ? 'border-red-500' : 'border-gray-300'} ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                   placeholder="Hours"
-                  min="1"
-                  step="1"
                   required
                 />
                 {errors.estimated_hours && <p className="text-red-500 text-xs mt-1">{errors.estimated_hours}</p>}
@@ -432,19 +432,53 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                <select
-                  id="priority"
-                  name="priority"
-                  value={formData.priority}
-                  onChange={handleChange}
-                  disabled={!canEdit}
-                  className={`w-full p-2 border rounded-md border-gray-300 ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
-                </select>
+                <div className="relative">
+                  <select
+                    id="priority"
+                    name="priority"
+                    value={formData.priority}
+                    onChange={handleChange}
+                    disabled={!canEdit}
+                    className={`w-full p-2 pl-10 border rounded-md border-gray-300 appearance-none ${!canEdit ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                  <div className="absolute inset-y-0 left-0 flex items-center px-2 pointer-events-none">
+                    <div className={`w-3 h-3 rounded-full ${
+                      formData.priority === 'low' ? 'bg-green-500' :
+                      formData.priority === 'medium' ? 'bg-blue-500' :
+                      formData.priority === 'high' ? 'bg-orange-500' :
+                      'bg-red-500'
+                    }`}></div>
+                  </div>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+                {/* Priority legend */}
+                <div className="grid grid-cols-4 gap-1 mt-2">
+                  <div className="flex items-center justify-center py-1 bg-green-50 rounded text-xs text-green-700">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                    Low
+                  </div>
+                  <div className="flex items-center justify-center py-1 bg-blue-50 rounded text-xs text-blue-700">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
+                    Medium
+                  </div>
+                  <div className="flex items-center justify-center py-1 bg-orange-50 rounded text-xs text-orange-700">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full mr-1"></div>
+                    High
+                  </div>
+                  <div className="flex items-center justify-center py-1 bg-red-50 rounded text-xs text-red-700">
+                    <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
+                    Urgent
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -534,7 +568,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                       )}
                       {attachment.type === 'document' && (
                         <svg className="w-5 h-5 text-yellow-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 002-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                       )}
                       {attachment.type === 'photo' && (

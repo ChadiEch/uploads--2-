@@ -27,6 +27,12 @@ export const AppProvider = ({ children }) => {
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
+  
+  // Search state
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // State for filtered tasks view
+  const [filteredTasksFilterType, setFilteredTasksFilterType] = useState('overdue');
 
   // Fetch all data when user is authenticated
   useEffect(() => {
@@ -384,6 +390,22 @@ export const AppProvider = ({ children }) => {
     setCurrentView('calendar');
   };
 
+  // Add search navigation function
+  const navigateToSearchResults = (term) => {
+    setSearchTerm(term);
+    if (term.trim()) {
+      setCurrentView('search-results');
+    } else {
+      // If search term is empty, go back to calendar
+      setCurrentView('calendar');
+    }
+  };
+
+  const navigateToFilteredTasks = (filterType) => {
+    setFilteredTasksFilterType(filterType);
+    setCurrentView('filtered-tasks');
+  };
+
   // Utility functions
   const getDepartmentById = (id) => {
     return departments.find(dept => dept.id === id);
@@ -407,6 +429,19 @@ export const AppProvider = ({ children }) => {
     setCurrentView('day-view');
   };
 
+  // Add search functionality
+  const searchTasks = (searchTerm) => {
+    if (!searchTerm || searchTerm.trim() === '') {
+      return [];
+    }
+    
+    const term = searchTerm.toLowerCase().trim();
+    return tasks.filter(task => 
+      (task.title && task.title.toLowerCase().includes(term)) ||
+      (task.description && task.description.toLowerCase().includes(term))
+    );
+  };
+
   const getTasksForDate = (date) => {
     if (!date) return [];
     
@@ -417,26 +452,23 @@ export const AppProvider = ({ children }) => {
     const targetDateStr = `${year}-${month}-${day}`;
     
     let filteredTasks = tasks.filter(task => {
-      if (!task.due_date) return false;
+      if (!task.created_at) return false;
       
-      // Handle different date formats and ensure proper comparison
+      // Handle different date formats and ensure proper comparison with timezone awareness
       let taskDateStr;
       try {
-        // If due_date is already a date string in YYYY-MM-DD format
-        if (typeof task.due_date === 'string' && task.due_date.includes('-') && !task.due_date.includes('T')) {
-          taskDateStr = task.due_date;
-        } else {
-          // Parse as full datetime and extract date part using local time
-          const taskDueDate = new Date(task.due_date);
-          const taskYear = taskDueDate.getFullYear();
-          const taskMonth = String(taskDueDate.getMonth() + 1).padStart(2, '0');
-          const taskDay = String(taskDueDate.getDate()).padStart(2, '0');
-          taskDateStr = `${taskYear}-${taskMonth}-${taskDay}`;
-        }
+        // Parse the date with timezone awareness
+        const taskCreatedDate = new Date(task.created_at);
+        
+        // Extract date part using local time (this handles timezone conversion properly)
+        const taskYear = taskCreatedDate.getFullYear();
+        const taskMonth = String(taskCreatedDate.getMonth() + 1).padStart(2, '0');
+        const taskDay = String(taskCreatedDate.getDate()).padStart(2, '0');
+        taskDateStr = `${taskYear}-${taskMonth}-${taskDay}`;
         
         return taskDateStr === targetDateStr;
       } catch (error) {
-        console.warn('Date parsing error for task:', task.id, task.due_date);
+        console.warn('Date parsing error for task:', task.id, task.created_at);
         return false;
       }
     });
@@ -448,6 +480,57 @@ export const AppProvider = ({ children }) => {
     }
     
     return filteredTasks;
+  };
+
+  // Function to get overdue tasks
+  const getOverdueTasks = () => {
+    return tasks.filter(task => {
+      const dueDate = new Date(task.due_date);
+      return dueDate < new Date() && task.status !== 'completed';
+    });
+  };
+
+  // Function to get high priority tasks
+  const getHighPriorityTasks = () => {
+    return tasks.filter(task => task.priority === 'high' || task.priority === 'urgent');
+  };
+
+  // Function to get tasks filtered by department, employee, and date range
+  const getFilteredTasks = (departmentId, employeeId, dateRangeDays) => {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - parseInt(dateRangeDays));
+    
+    return tasks.filter(task => {
+      const matchesDepartment = !departmentId || task.department_id === departmentId;
+      const matchesEmployee = !employeeId || task.assigned_to === employeeId;
+      
+      // Date range filter
+      const taskDate = new Date(task.created_at);
+      const matchesDate = taskDate >= cutoffDate;
+      
+      return matchesDepartment && matchesEmployee && matchesDate;
+    });
+  };
+
+  // Function to get overdue tasks with filters applied
+  const getFilteredOverdueTasks = (departmentId, employeeId, dateRangeDays) => {
+    const filteredTasks = getFilteredTasks(departmentId, employeeId, dateRangeDays);
+    return filteredTasks.filter(task => {
+      const dueDate = new Date(task.due_date);
+      return dueDate < new Date() && task.status !== 'completed';
+    });
+  };
+
+  // Function to get high priority tasks with filters applied
+  const getFilteredHighPriorityTasks = (departmentId, employeeId, dateRangeDays) => {
+    const filteredTasks = getFilteredTasks(departmentId, employeeId, dateRangeDays);
+    return filteredTasks.filter(task => task.priority === 'high' || task.priority === 'urgent');
+  };
+
+  // Function to get in progress tasks with filters applied
+  const getFilteredInProgressTasks = (departmentId, employeeId, dateRangeDays) => {
+    const filteredTasks = getFilteredTasks(departmentId, employeeId, dateRangeDays);
+    return filteredTasks.filter(task => task.status === 'in-progress');
   };
 
   const value = {
@@ -463,6 +546,11 @@ export const AppProvider = ({ children }) => {
     selectedDepartment,
     selectedEmployee,
     selectedDate,
+    filteredTasksFilterType,
+    
+    // Search state
+    searchTerm,
+    setSearchTerm,
     
     // User/Auth info (derived from AuthContext but provided here for convenience)
     currentUser: user,
@@ -494,6 +582,10 @@ export const AppProvider = ({ children }) => {
     navigateToDepartmentEmployees,
     navigateToEmployee,
     navigateToTasks,
+    navigateToSearchResults,
+    navigateToCalendar,
+    navigateToDayView,
+    navigateToFilteredTasks,
     
     // Utility functions
     getTasksByStatus,
@@ -505,8 +597,13 @@ export const AppProvider = ({ children }) => {
     getEmployeesByDepartment,
     getMyTasks,
     getTasksForDate,
-    navigateToDayView,
-    navigateToCalendar,
+    getOverdueTasks,
+    getHighPriorityTasks,
+    getFilteredTasks,
+    getFilteredOverdueTasks,
+    getFilteredHighPriorityTasks,
+    getFilteredInProgressTasks,
+    searchTasks,
   };
 
   return (

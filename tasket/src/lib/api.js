@@ -189,7 +189,7 @@ export const tasksAPI = {
       // Ensure estimated_hours is properly formatted and always provided
       const formattedTaskData = {
         ...otherData,
-        estimated_hours: estimated_hours !== undefined && estimated_hours !== null && estimated_hours !== '' ? parseInt(estimated_hours, 10) : 1,
+        estimated_hours: estimated_hours !== undefined && estimated_hours !== null && estimated_hours !== '' ? parseFloat(estimated_hours) : 1.00,
         // Filter out placeholder attachments (those with empty URLs) when sending to backend
         attachments: Array.isArray(attachments) ? attachments.filter(att => att && att.url) : []
       };
@@ -216,7 +216,7 @@ export const tasksAPI = {
       const formattedData = {
         ...taskData,
         // Ensure estimated_hours is always provided and is at least 1
-        estimated_hours: taskData.estimated_hours !== undefined && taskData.estimated_hours !== null && taskData.estimated_hours !== '' ? parseInt(taskData.estimated_hours, 10) : 1,
+        estimated_hours: taskData.estimated_hours !== undefined && taskData.estimated_hours !== null && taskData.estimated_hours !== '' ? parseFloat(taskData.estimated_hours) : 1.00,
         // Ensure attachments is an array and filter out invalid attachments
         attachments: Array.isArray(taskData.attachments) ? taskData.attachments.filter(att => att && att.url) : []
       };
@@ -250,7 +250,7 @@ export const tasksAPI = {
       // Ensure estimated_hours is properly formatted
       const formattedTaskData = {
         ...otherData,
-        estimated_hours: estimated_hours !== undefined && estimated_hours !== null && estimated_hours !== '' ? parseInt(estimated_hours, 10) : 1,
+        estimated_hours: estimated_hours !== undefined && estimated_hours !== null && estimated_hours !== '' ? parseFloat(estimated_hours) : 1.00,
         // Filter out placeholder attachments (those with empty URLs) when sending to backend
         attachments: Array.isArray(attachments) ? attachments.filter(att => att && att.url) : []
       };
@@ -276,7 +276,7 @@ export const tasksAPI = {
       // Ensure estimated_hours is properly formatted
       const formattedData = {
         ...taskData,
-        estimated_hours: taskData.estimated_hours !== undefined && taskData.estimated_hours !== null && taskData.estimated_hours !== '' ? parseInt(taskData.estimated_hours, 10) : 1,
+        estimated_hours: taskData.estimated_hours !== undefined && taskData.estimated_hours !== null && taskData.estimated_hours !== '' ? parseFloat(taskData.estimated_hours) : 1.00,
         // Ensure attachments is an array and filter out invalid attachments
         attachments: Array.isArray(taskData.attachments) ? taskData.attachments.filter(att => att && att.url) : []
       };

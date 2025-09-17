@@ -157,9 +157,9 @@ const createTask = async (req, res) => {
       return res.status(400).json({ message: 'Title is required' });
     }
     
-    const parsedEstimatedHours = estimated_hours ? parseInt(estimated_hours, 10) : null;
-    if (parsedEstimatedHours === null || isNaN(parsedEstimatedHours) || parsedEstimatedHours < 1) {
-      return res.status(400).json({ message: 'Estimated hours is required and must be at least 1' });
+    const parsedEstimatedHours = estimated_hours ? parseFloat(estimated_hours) : null;
+    if (parsedEstimatedHours === null || isNaN(parsedEstimatedHours) || parsedEstimatedHours < 0.01) {
+      return res.status(400).json({ message: 'Estimated hours is required and must be at least 0.01' });
     }
 
     const {
@@ -169,7 +169,6 @@ const createTask = async (req, res) => {
       status,
       priority,
       due_date,
-      start_date,
       tags,
       attachments // This will be handled separately
     } = taskData;
@@ -199,6 +198,22 @@ const createTask = async (req, res) => {
       processedAttachments = [...filteredAttachments, ...uploadedFiles];
     }
 
+    // Handle start_date for tasks created as in-progress
+    let startDate = null;
+    if (status === 'in-progress') {
+      startDate = new Date();
+    }
+    
+    // Handle completed_date for tasks created as completed
+    let completedDate = null;
+    let actualHours = null;
+    if (status === 'completed') {
+      completedDate = new Date();
+      // If task is created as completed, we'll calculate actual hours as 0
+      // since we don't have a start date
+      actualHours = 0;
+    }
+
     const finalTaskData = {
       title,
       description,
@@ -208,7 +223,9 @@ const createTask = async (req, res) => {
       status: status || 'planned',
       priority: priority || 'medium',
       due_date,
-      start_date,
+      start_date: startDate, // Add start_date
+      completed_date: completedDate, // Add completed_date
+      actual_hours: actualHours, // Add actual_hours
       estimated_hours: parsedEstimatedHours,
       tags: Array.isArray(tags) ? tags : [],
       attachments: processedAttachments
@@ -302,19 +319,44 @@ const updateTask = async (req, res) => {
     if (taskData.status !== undefined) updateData.status = taskData.status;
     if (taskData.priority !== undefined) updateData.priority = taskData.priority;
     if (taskData.due_date !== undefined) updateData.due_date = taskData.due_date;
-    if (taskData.start_date !== undefined) updateData.start_date = taskData.start_date;
     if (taskData.estimated_hours !== undefined) {
-      const parsedEstimatedHours = parseInt(taskData.estimated_hours, 10);
-      if (!isNaN(parsedEstimatedHours) && parsedEstimatedHours >= 1) {
+      const parsedEstimatedHours = parseFloat(taskData.estimated_hours);
+      if (!isNaN(parsedEstimatedHours) && parsedEstimatedHours >= 0.01) {
+        // Ensure we preserve decimal precision without rounding
         updateData.estimated_hours = parsedEstimatedHours;
+      } else if (parsedEstimatedHours === 0) {
+        updateData.estimated_hours = 0.00;
       }
     }
-    if (taskData.actual_hours !== undefined) {
-      const parsedActualHours = parseInt(taskData.actual_hours, 10);
-      if (!isNaN(parsedActualHours) && parsedActualHours >= 0) {
-        updateData.actual_hours = parsedActualHours;
+    
+    // Automatically set start_date when task status changes to 'in-progress'
+    if (taskData.status === 'in-progress' && task.status !== 'in-progress') {
+      // Only set start_date if it's not already set
+      if (!task.start_date) {
+        updateData.start_date = new Date();
       }
     }
+    
+    // Automatically calculate actual hours when task is completed
+    if (taskData.status === 'completed' && task.status !== 'completed') {
+      // Only calculate if start_date exists
+      if (task.start_date) {
+        const startDate = new Date(task.start_date);
+        const completedDate = new Date();
+        const diffInHours = (completedDate - startDate) / (1000 * 60 * 60); // Calculate in hours with decimals
+        updateData.actual_hours = parseFloat(diffInHours.toFixed(2)); // Ensure 2 decimal places
+        updateData.completed_date = completedDate;
+      } else {
+        // If no start date, use a default calculation or set to 0
+        updateData.actual_hours = 0.00;
+        updateData.completed_date = new Date();
+      }
+    } else if (taskData.status !== 'completed' && task.status === 'completed') {
+      // If task is being changed from completed to another status, clear actual_hours and completed_date
+      updateData.actual_hours = null;
+      updateData.completed_date = null;
+    }
+    
     if (taskData.tags !== undefined) updateData.tags = Array.isArray(taskData.tags) ? taskData.tags : [];
     
     // Process uploaded files for attachments

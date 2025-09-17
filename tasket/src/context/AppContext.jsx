@@ -27,6 +27,7 @@ export const AppProvider = ({ children }) => {
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedProject, setSelectedProject] = useState(null);
   
   // Search state
   const [searchTerm, setSearchTerm] = useState('');
@@ -355,8 +356,11 @@ export const AppProvider = ({ children }) => {
   };
 
   // Navigation functions
-  const navigateTo = (view) => {
+  const navigateTo = (view, project = null) => {
     setCurrentView(view);
+    if (project) {
+      setSelectedProject(project);
+    }
   };
 
   const navigateToDepartments = () => {
@@ -546,6 +550,7 @@ export const AppProvider = ({ children }) => {
     selectedDepartment,
     selectedEmployee,
     selectedDate,
+    selectedProject,
     filteredTasksFilterType,
     
     // Search state

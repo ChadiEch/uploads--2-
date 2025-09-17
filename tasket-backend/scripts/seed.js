@@ -1,4 +1,4 @@
-const { sequelize, Department, Employee, Task } = require('../models');
+const { sequelize, Department, Employee, Task, Project } = require('../models');
 require('dotenv').config();
 
 const seedData = async () => {

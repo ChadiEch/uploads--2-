@@ -28,8 +28,11 @@ export const WebSocketProvider = ({ children }) => {
   // Initialize socket connection
   useEffect(() => {
     if (isAuthenticated && user) {
-      const newSocket = io(import.meta.env.VITE_WS_BASE_URL || 
-        (import.meta.env.PROD ? window.location.origin : 'http://localhost:5000'), {
+      // Use the same base URL as the API, but without the /api prefix
+      const baseUrl = import.meta.env.VITE_API_URL || 
+        (import.meta.env.PROD ? window.location.origin : 'http://localhost:5002');
+      
+      const newSocket = io(baseUrl, {
         autoConnect: false,
         reconnection: true,
         reconnectionDelay: 1000,

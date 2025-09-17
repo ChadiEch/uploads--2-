@@ -440,6 +440,47 @@ export const employeesAPI = {
   },
 };
 
+// Projects API
+export const projectsAPI = {
+  getProjects: async () => {
+    return apiRequest('/projects');
+  },
+
+  getProject: async (id) => {
+    return apiRequest(`/projects/${id}`);
+  },
+
+  getProjectTasks: async (id) => {
+    return apiRequest(`/projects/${id}/tasks`);
+  },
+
+  createProject: async (projectData) => {
+    return apiRequest('/projects', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: projectData,
+    });
+  },
+
+  updateProject: async (id, projectData) => {
+    return apiRequest(`/projects/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: projectData,
+    });
+  },
+
+  deleteProject: async (id) => {
+    return apiRequest(`/projects/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 // Helper functions
 export const isAuthenticated = () => {
   return !!getAuthToken();

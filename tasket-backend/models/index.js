@@ -3,6 +3,7 @@ const Department = require('./Department');
 const Employee = require('./Employee');
 const Task = require('./Task');
 const TaskComment = require('./TaskComment');
+const Project = require('./Project');
 
 // Define associations
 Department.hasMany(Employee, { foreignKey: 'department_id', as: 'employees' });
@@ -26,10 +27,15 @@ TaskComment.belongsTo(Task, { foreignKey: 'task_id', as: 'task' });
 Employee.hasMany(TaskComment, { foreignKey: 'employee_id', as: 'comments' });
 TaskComment.belongsTo(Employee, { foreignKey: 'employee_id', as: 'employee' });
 
+// Project associations
+Employee.hasMany(Project, { foreignKey: 'created_by', as: 'createdProjects' });
+Project.belongsTo(Employee, { foreignKey: 'created_by', as: 'creator' });
+
 module.exports = {
   sequelize,
   Department,
   Employee,
   Task,
-  TaskComment
+  TaskComment,
+  Project
 };

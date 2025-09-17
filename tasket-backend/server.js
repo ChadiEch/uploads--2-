@@ -100,6 +100,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/departments', require('./routes/departments'));
 app.use('/api/employees', require('./routes/employees'));
+app.use('/api/projects', require('./routes/projects'));
 
 // Serve static frontend files in production
 if (process.env.NODE_ENV === 'production') {

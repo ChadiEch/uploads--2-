@@ -13,10 +13,13 @@ import Profile from './Profile'
 import ProtectedRoute from './auth/ProtectedRoute'
 import SearchResults from './SearchResults'
 import FilteredTasksView from './FilteredTasksView'
+import ProjectList from './projects/ProjectList'
+import ProjectTasks from './projects/ProjectTasks'
 
 const MainContent = () => {
-  const { currentView, searchTerm, navigateTo } = useApp()
+  const { currentView, searchTerm, navigateTo, selectedProject } = useApp()
   const { isAdmin } = useAuth()
+  const appContext = useApp();
 
   const renderContent = () => {
     switch (currentView) {
@@ -26,6 +29,10 @@ const MainContent = () => {
             <Dashboard />
           </ProtectedRoute>
         )
+      case 'projects':
+        return <ProjectList />
+      case 'project-tasks':
+        return <ProjectTasks />
       case 'departments':
         return (
           <ProtectedRoute requireAdmin={true}>

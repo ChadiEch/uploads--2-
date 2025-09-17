@@ -14,6 +14,12 @@ const Sidebar = () => {
       onClick: () => navigateTo('dashboard')
     },
     { 
+      name: 'Projects', 
+      key: 'projects',
+      icon: 'folder', 
+      onClick: () => navigateTo('projects')
+    },
+    { 
       name: 'Departments', 
       key: 'departments',
       icon: 'office-building', 
@@ -47,6 +53,12 @@ const Sidebar = () => {
       onClick: () => navigateTo('calendar')
     },
     { 
+      name: 'Projects', 
+      key: 'projects',
+      icon: 'folder', 
+      onClick: () => navigateTo('projects')
+    },
+    { 
       name: 'Profile', 
       key: 'profile',
       icon: 'user', 
@@ -62,6 +74,11 @@ const Sidebar = () => {
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
           <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
           <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
+        </svg>
+      ),
+      'folder': (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
         </svg>
       ),
       'office-building': (

@@ -3,20 +3,23 @@ import { useApp } from '../context/AppContext'
 import { useAuth } from '../context/AuthContext'
 
 const MobileNavigation = () => {
-  const { currentView, navigateTo } = useApp()
+  const { currentView, navigateTo, searchTerm, setSearchTerm } = useApp()
   const { employee, isAdmin, signOut } = useAuth()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   const adminMenuItems = [
     { name: 'Dashboard', key: 'dashboard', icon: 'chart-square-bar' },
+    { name: 'Projects', key: 'projects', icon: 'folder' },
     { name: 'Departments', key: 'departments', icon: 'office-building' },
     { name: 'Employees', key: 'employees', icon: 'users' },
-    { name: 'Enhanced Calendar', key: 'calendar', icon: 'calendar' },
+    { name: 'Calendar', key: 'calendar', icon: 'calendar' },
     { name: 'Reports', key: 'reports', icon: 'chart-bar' }
   ]
 
   const employeeMenuItems = [
     { name: 'My Tasks', key: 'calendar', icon: 'clipboard-list' },
+    { name: 'Projects', key: 'projects', icon: 'folder' }, // Added Projects to employee menu
     { name: 'Profile', key: 'profile', icon: 'user' }
   ]
 
@@ -28,6 +31,11 @@ const MobileNavigation = () => {
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
           <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
           <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
+        </svg>
+      ),
+      'folder': (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
         </svg>
       ),
       'office-building': (
@@ -60,6 +68,11 @@ const MobileNavigation = () => {
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
         </svg>
+      ),
+      'search': (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
       )
     }
     return icons[iconName] || <div className="w-5 h-5 bg-gray-400 rounded"></div>
@@ -68,6 +81,19 @@ const MobileNavigation = () => {
   const handleMenuClick = (key) => {
     navigateTo(key)
     setIsMenuOpen(false)
+  }
+
+  const handleSearchToggle = () => {
+    setIsSearchOpen(!isSearchOpen)
+    setIsMenuOpen(false)
+  }
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault()
+    if (searchTerm.trim()) {
+      navigateTo('search-results')
+      setIsSearchOpen(false)
+    }
   }
 
   return (
@@ -83,15 +109,52 @@ const MobileNavigation = () => {
           <h1 className="text-lg font-semibold text-gray-900">TaskFlow</h1>
         </div>
         
-        <button
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
+        <div className="flex items-center space-x-2">
+          {/* Allow search for both admin and employees */}
+          <button
+            onClick={handleSearchToggle}
+            className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+          >
+            {getIcon('search')}
+          </button>
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
       </div>
+
+      {/* Search Bar */}
+      {isSearchOpen && (
+        <div className="md:hidden bg-white border-b border-gray-200 px-4 py-3">
+          <form onSubmit={handleSearchSubmit} className="relative">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search tasks..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              autoFocus
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              {getIcon('search')}
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsSearchOpen(false)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Mobile Menu Overlay */}
       {isMenuOpen && (

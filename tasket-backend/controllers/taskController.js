@@ -185,12 +185,21 @@ const createTask = async (req, res) => {
     let processedAttachments = Array.isArray(attachments) ? attachments : [];
     if (req.files && req.files.length > 0) {
       // Add uploaded files to attachments
-      const uploadedFiles = req.files.map(file => ({
-        id: Date.now() + Math.random(), // Generate a temporary ID
-        type: file.mimetype.startsWith('image/') ? 'photo' : 'document',
-        url: `/uploads/${file.filename}`,
-        name: file.originalname
-      }));
+      const uploadedFiles = req.files.map(file => {
+        let type = 'document'; // Default type
+        if (file.mimetype.startsWith('image/')) {
+          type = 'photo';
+        } else if (file.mimetype.startsWith('video/')) {
+          type = 'video';
+        }
+        
+        return {
+          id: Date.now() + Math.random(), // Generate a temporary ID
+          type: type,
+          url: `/uploads/${file.filename}`,
+          name: file.originalname
+        };
+      });
       
       // Filter out placeholder attachments (those with empty URLs)
       // This ensures we only keep valid attachments and replace placeholders with actual uploaded files
@@ -363,12 +372,21 @@ const updateTask = async (req, res) => {
     let processedAttachments = taskData.attachments;
     if (req.files && req.files.length > 0) {
       // Add uploaded files to attachments
-      const uploadedFiles = req.files.map(file => ({
-        id: Date.now() + Math.random(), // Generate a temporary ID
-        type: file.mimetype.startsWith('image/') ? 'photo' : 'document',
-        url: `/uploads/${file.filename}`,
-        name: file.originalname
-      }));
+      const uploadedFiles = req.files.map(file => {
+        let type = 'document'; // Default type
+        if (file.mimetype.startsWith('image/')) {
+          type = 'photo';
+        } else if (file.mimetype.startsWith('video/')) {
+          type = 'video';
+        }
+        
+        return {
+          id: Date.now() + Math.random(), // Generate a temporary ID
+          type: type,
+          url: `/uploads/${file.filename}`,
+          name: file.originalname
+        };
+      });
       
       // If we're updating and have existing attachments, filter out any placeholder attachments
       // that were added for file uploads (they have empty URLs)

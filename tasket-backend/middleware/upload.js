@@ -20,7 +20,7 @@ const taskAttachmentStorage = multer.diskStorage({
 });
 
 const taskAttachmentFileFilter = (req, file, cb) => {
-  // Accept documents, images, and other common file types
+  // Accept documents, images, videos, and other common file types
   const allowedTypes = [
     'image/jpeg',
     'image/png',
@@ -32,7 +32,13 @@ const taskAttachmentFileFilter = (req, file, cb) => {
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'text/plain',
     'application/zip',
-    'application/x-zip-compressed'
+    'application/x-zip-compressed',
+    'video/mp4',
+    'video/webm',
+    'video/ogg',
+    'video/quicktime',
+    'video/x-msvideo',
+    'video/x-matroska'
   ];
   
   if (allowedTypes.includes(file.mimetype)) {

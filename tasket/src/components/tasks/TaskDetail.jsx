@@ -63,7 +63,7 @@ const TaskDetail = ({ task, onClose }) => {
     if (attachment.type === 'link') {
       return attachment.url;
     } else {
-      // For documents and photos, construct the full URL if it's a relative path
+      // For documents, photos, and videos, construct the full URL if it's a relative path
       if (attachment.url.startsWith('/uploads/')) {
         // Get the base URL without the /api part
         const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
@@ -72,6 +72,106 @@ const TaskDetail = ({ task, onClose }) => {
       }
       return attachment.url;
     }
+  };
+
+  // Render attachments with appropriate icons and handling
+  const renderAttachments = (attachments) => {
+    if (!attachments || attachments.length === 0) {
+      return null;
+    }
+
+    // Separate photos, videos, and documents
+    const photos = attachments.filter(attachment => attachment.type === 'photo');
+    const videos = attachments.filter(attachment => attachment.type === 'video');
+    const documents = attachments.filter(attachment => attachment.type !== 'photo' && attachment.type !== 'video' && attachment.type !== 'link');
+    const links = attachments.filter(attachment => attachment.type === 'link');
+
+    return (
+      <div className="mt-4">
+        <h4 className="text-sm font-medium text-gray-500 mb-2">Attachments</h4>
+        
+        {photos.length > 0 && (
+          <div className="mb-3">
+            <h5 className="text-sm font-medium text-gray-600 mb-1">Photos:</h5>
+            <div className="flex flex-wrap gap-2">
+              {photos.map((photo, index) => (
+                <a
+                  key={index}
+                  href={getAttachmentUrl(photo)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  <img 
+                    src={getAttachmentUrl(photo)} 
+                    alt={photo.name || `Photo ${index + 1}`}
+                    className="h-16 w-16 object-cover rounded-md border border-gray-300"
+                  />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {videos.length > 0 && (
+          <div className="mb-3">
+            <h5 className="text-sm font-medium text-gray-600 mb-1">Videos:</h5>
+            <div className="flex flex-wrap gap-2">
+              {videos.map((video, index) => (
+                <a
+                  key={index}
+                  href={getAttachmentUrl(video)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center px-3 py-2 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1 text-gray-600" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                  </svg>
+                  <span className="text-sm text-gray-700">{video.name || `Video ${index + 1}`}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(documents.length > 0 || links.length > 0) && (
+          <div>
+            <h5 className="text-sm font-medium text-gray-600 mb-1">Files & Links:</h5>
+            <div className="flex flex-wrap gap-2">
+              {documents.map((document, index) => (
+                <a
+                  key={index}
+                  href={getAttachmentUrl(document)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center px-3 py-2 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 002-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span className="text-sm text-gray-700">{document.name || `Document ${index + 1}`}</span>
+                </a>
+              ))}
+              {links.map((link, index) => (
+                <a
+                  key={index}
+                  href={getAttachmentUrl(link)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center px-3 py-2 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  <span className="text-sm text-gray-700">{link.name || link.url || `Link ${index + 1}`}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -173,27 +273,7 @@ const TaskDetail = ({ task, onClose }) => {
               )}
             </div>
             
-            {task.attachments && task.attachments.length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium text-gray-500 mb-2">Attachments</h4>
-                <div className="flex flex-wrap gap-2">
-                  {task.attachments.map((attachment, index) => (
-                    <a
-                      key={index}
-                      href={getAttachmentUrl(attachment)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center px-3 py-2 bg-gray-100 rounded-md hover:bg-gray-200"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                      </svg>
-                      <span className="text-sm text-gray-700">{attachment.name}</span>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
+            {renderAttachments(task.attachments)}
             
             <div className="mt-6 flex justify-end">
               <button

@@ -61,9 +61,10 @@ const ProjectTasks = () => {
       return <span className="text-gray-500">No attachments</span>;
     }
 
-    // Separate photos and documents
+    // Separate photos, videos, and documents
     const photos = attachments.filter(attachment => attachment.type === 'photo');
-    const documents = attachments.filter(attachment => attachment.type !== 'photo');
+    const videos = attachments.filter(attachment => attachment.type === 'video');
+    const documents = attachments.filter(attachment => attachment.type !== 'photo' && attachment.type !== 'video');
 
     return (
       <div className="mt-2">
@@ -88,6 +89,29 @@ const ProjectTasks = () => {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {videos.length > 0 && (
+          <div className="mt-2">
+            <h4 className="text-sm font-medium text-gray-700">Videos:</h4>
+            <ul className="mt-1 space-y-1">
+              {videos.map((video, index) => (
+                <li key={index} className="flex items-center text-sm">
+                  <svg className="flex-shrink-0 h-4 w-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                  </svg>
+                  <a 
+                    href={video.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="ml-2 text-indigo-600 hover:text-indigo-900 truncate"
+                  >
+                    {video.name || `Video ${index + 1}`}
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 

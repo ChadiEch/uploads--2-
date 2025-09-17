@@ -72,20 +72,29 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
     setNewAttachment({ ...newAttachment, [name]: value });
   };
 
-  // Handle file upload for documents and photos
+  // Handle file upload for documents, photos, and videos
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
     if (files.length > 0) {
       // Store the files to be uploaded
-      const fileAttachments = files.map(file => ({
-        file,
-        attachment: {
-          id: Date.now() + Math.random(),
-          type: file.type.startsWith('image/') ? 'photo' : 'document',
-          url: URL.createObjectURL(file), // For preview only
-          name: file.name
+      const fileAttachments = files.map(file => {
+        let type = 'document'; // Default type
+        if (file.type.startsWith('image/')) {
+          type = 'photo';
+        } else if (file.type.startsWith('video/')) {
+          type = 'video';
         }
-      }));
+        
+        return {
+          file,
+          attachment: {
+            id: Date.now() + Math.random(),
+            type: type,
+            url: URL.createObjectURL(file), // For preview only
+            name: file.name
+          }
+        };
+      });
       
       // Update the file map
       const newFileMap = {};
@@ -295,7 +304,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
     if (attachment.type === 'link') {
       return attachment.url;
     } else {
-      // For documents and photos, if it's a local URL, use it as is for display
+      // For documents, photos, and videos, if it's a local URL, use it as is for display
       // If it's a blob URL (from file upload preview), use that
       if (attachment.url && attachment.url.startsWith('blob:')) {
         return attachment.url;
@@ -514,6 +523,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                     <option value="link">Link</option>
                     <option value="document">Document</option>
                     <option value="photo">Photo</option>
+                    <option value="video">Video</option>
                   </select>
                   
                   {newAttachment.type === 'link' ? (
@@ -541,7 +551,7 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                           type="file"
                           className="hidden"
                           onChange={handleFileUpload}
-                          accept={newAttachment.type === 'photo' ? 'image/*' : '.pdf,.doc,.docx'}
+                          accept={newAttachment.type === 'photo' ? 'image/*' : newAttachment.type === 'video' ? 'video/*' : '.pdf,.doc,.docx'}
                         />
                       </label>
                     </>
@@ -574,6 +584,11 @@ const TaskForm = ({ task, employeeId, date, onClose }) => {
                       {attachment.type === 'photo' && (
                         <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                      {attachment.type === 'video' && (
+                        <svg className="w-5 h-5 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
                         </svg>
                       )}
                       <span className="text-sm">{attachment.name}</span>

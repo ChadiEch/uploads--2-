@@ -96,16 +96,11 @@ export const WebSocketProvider = ({ children }) => {
         taskUpdateListeners.forEach(listener => listener({ ...data, type: 'deleted' }));
       });
 
+      // This event is now handled through the notification system
       newSocket.on('task_assigned', (data) => {
-        console.log('Task assigned:', data);
-        addNotification({
-          id: Date.now(),
-          type: 'task_assigned',
-          title: 'New Task Assigned',
-          message: `You have been assigned task: ${data.task.title}`,
-          data: data.task,
-          timestamp: new Date().toISOString()
-        });
+        console.log('Task assigned (via notification system):', data);
+        // We no longer create a separate notification here since it's handled by the 'notification' event
+        // The backend already creates and broadcasts the notification
       });
 
       newSocket.on('task_comment_added', (data) => {
@@ -140,14 +135,21 @@ export const WebSocketProvider = ({ children }) => {
         console.log('User stopped typing:', data);
       });
 
-      // Notification events
+      // Notification events - This is the primary way notifications are received
       newSocket.on('notification', (data) => {
         console.log('Notification received:', data);
-        addNotification({
-          id: Date.now(),
-          ...data.notification,
-          timestamp: data.timestamp
-        });
+        // Transform backend notification format to frontend format
+        const transformedNotification = {
+          id: data.notification.id,
+          type: data.notification.type,
+          title: data.notification.title,
+          message: data.notification.message,
+          priority: data.notification.priority,
+          read: data.notification.is_read,
+          timestamp: data.notification.created_at,
+          ...data.notification
+        };
+        addNotification(transformedNotification);
       });
 
       // Connect the socket
@@ -177,6 +179,12 @@ export const WebSocketProvider = ({ children }) => {
   const markNotificationAsRead = useCallback((notificationId) => {
     setNotifications(prev => 
       prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+    );
+  }, []);
+
+  const markAllAsRead = useCallback(() => {
+    setNotifications(prev => 
+      prev.map(n => ({ ...n, read: true }))
     );
   }, []);
 
@@ -263,6 +271,7 @@ export const WebSocketProvider = ({ children }) => {
     addNotification,
     removeNotification,
     markNotificationAsRead,
+    markAllAsRead,
   };
 
   return (

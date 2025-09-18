@@ -22,5 +22,8 @@
     "react"
   ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "node-cron": "^4.2.1"
+  }
 }

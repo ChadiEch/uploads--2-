@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useWebSocket } from '../context/WebSocketContext';
+import { useApp } from '../context/AppContext';
 
 const NotificationToast = ({ notification, onClose, onAction }) => {
   const [isVisible, setIsVisible] = useState(true);
@@ -64,7 +65,8 @@ const NotificationToast = ({ notification, onClose, onAction }) => {
     <div
       className={`transition-all duration-300 transform ${
         isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
-      } max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden`}
+      } max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden cursor-pointer`}
+      onClick={() => onAction && onAction(notification)}
     >
       <div className={`p-4 border-l-4 ${getBgColor(notification.type)}`}>
         <div className="flex items-start">
@@ -81,10 +83,13 @@ const NotificationToast = ({ notification, onClose, onAction }) => {
             {notification.data && (
               <div className="mt-2">
                 <button
-                  onClick={() => onAction && onAction(notification)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevent triggering the main click handler
+                    onAction && onAction(notification);
+                  }}
                   className="text-sm text-blue-600 hover:text-blue-500 font-medium"
                 >
-                  View Details
+                  View Task
                 </button>
               </div>
             )}
@@ -92,7 +97,10 @@ const NotificationToast = ({ notification, onClose, onAction }) => {
           <div className="ml-4 flex-shrink-0 flex">
             <button
               className="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none"
-              onClick={handleClose}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent triggering the main click handler
+                handleClose();
+              }}
             >
               <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -107,6 +115,7 @@ const NotificationToast = ({ notification, onClose, onAction }) => {
 
 const NotificationContainer = () => {
   const { notifications, removeNotification, markNotificationAsRead } = useWebSocket();
+  const { navigateTo } = useApp();
   const [visibleNotifications, setVisibleNotifications] = useState([]);
 
   useEffect(() => {
@@ -123,8 +132,16 @@ const NotificationContainer = () => {
   const handleAction = (notification) => {
     // Handle notification action based on type
     if (notification.type === 'task_assigned' && notification.data) {
-      // Navigate to task detail
-      window.location.href = `#/tasks/${notification.data.id}`;
+      // Navigate to calendar view
+      navigateTo('calendar');
+      // Use the global function to open the specific task
+      setTimeout(() => {
+        if (window.openTaskFromNotification) {
+          window.openTaskFromNotification(notification.data.id);
+        } else {
+          console.warn('openTaskFromNotification function not available');
+        }
+      }, 300); // Increased delay to ensure navigation completes first
     }
     handleClose(notification.id);
   };

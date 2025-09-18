@@ -14,12 +14,14 @@ const MobileNavigation = () => {
     { name: 'Departments', key: 'departments', icon: 'office-building' },
     { name: 'Employees', key: 'employees', icon: 'users' },
     { name: 'Calendar', key: 'calendar', icon: 'calendar' },
+    { name: 'Notifications', key: 'notifications', icon: 'bell' },
     { name: 'Reports', key: 'reports', icon: 'chart-bar' }
   ]
 
   const employeeMenuItems = [
     { name: 'My Tasks', key: 'calendar', icon: 'clipboard-list' },
-    { name: 'Projects', key: 'projects', icon: 'folder' }, // Added Projects to employee menu
+    { name: 'Projects', key: 'projects', icon: 'folder' },
+    { name: 'Notifications', key: 'notifications', icon: 'bell' },
     { name: 'Profile', key: 'profile', icon: 'user' }
   ]
 
@@ -72,6 +74,11 @@ const MobileNavigation = () => {
       'search': (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      ),
+      'bell': (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
         </svg>
       )
     }
@@ -224,7 +231,7 @@ const MobileNavigation = () => {
       {/* Bottom Navigation for Mobile */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 safe-area-pb">
         <div className="flex justify-around">
-          {menuItems.slice(0, 4).map((item, index) => (
+          {menuItems.slice(0, 5).map((item, index) => (
             <button
               key={index}
               onClick={() => handleMenuClick(item.key)}

@@ -10,6 +10,7 @@ require('dotenv').config();
 
 const { sequelize } = require('./models');
 const WebSocketService = require('./services/websocketService');
+const DueDateNotificationService = require('./services/dueDateNotificationService');
 
 const app = express();
 const server = http.createServer(app);
@@ -34,6 +35,9 @@ const io = new Server(server, {
 
 // Initialize WebSocket service
 const websocketService = new WebSocketService(io);
+
+// Initialize Due Date Notification service
+const dueDateNotificationService = new DueDateNotificationService(websocketService);
 
 // Make WebSocket service available to routes
 app.set('websocketService', websocketService);
@@ -101,6 +105,7 @@ app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/departments', require('./routes/departments'));
 app.use('/api/employees', require('./routes/employees'));
 app.use('/api/projects', require('./routes/projects'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Serve static frontend files in production
 if (process.env.NODE_ENV === 'production') {

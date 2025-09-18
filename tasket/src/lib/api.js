@@ -481,6 +481,32 @@ export const projectsAPI = {
   },
 };
 
+// Notifications API
+export const notificationsAPI = {
+  getNotifications: async (params = {}) => {
+    const queryParams = new URLSearchParams(params);
+    return apiRequest(`/notifications?${queryParams}`);
+  },
+
+  markAsRead: async (id) => {
+    return apiRequest(`/notifications/${id}/read`, {
+      method: 'PUT',
+    });
+  },
+
+  markAllAsRead: async () => {
+    return apiRequest(`/notifications/read-all`, {
+      method: 'PUT',
+    });
+  },
+
+  deleteNotification: async (id) => {
+    return apiRequest(`/notifications/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 // Helper functions
 export const isAuthenticated = () => {
   return !!getAuthToken();

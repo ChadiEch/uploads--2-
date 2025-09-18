@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useApp } from '../context/AppContext'
+import TaskDetail from './tasks/TaskDetail'
 
 const EnhancedCalendar = () => {
   const { tasks, navigateToDayView, selectedEmployee, navigateToCalendar } = useApp()
@@ -8,8 +9,27 @@ const EnhancedCalendar = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [viewingTask, setViewingTask] = useState(null)
+  const [taskToView, setTaskToView] = useState(null) // For opening a specific task
 
   const today = new Date()
+
+  // Check if there's a task to view when component mounts or when tasks change
+  useEffect(() => {
+    if (taskToView) {
+      // Add a small delay to ensure tasks are loaded
+      const timer = setTimeout(() => {
+        const task = tasks.find(t => t.id === taskToView);
+        if (task) {
+          setViewingTask(task);
+        } else {
+          console.warn(`Task with ID ${taskToView} not found`);
+        }
+        setTaskToView(null); // Clear it after processing
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [taskToView, tasks]);
 
   // Generate years for selection (10 years before and after current year)
   const generateYears = () => {
@@ -186,6 +206,13 @@ const EnhancedCalendar = () => {
     setViewingTask(null)
   }
 
+  const openTaskById = (taskId) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      setViewingTask(task);
+    }
+  }
+
   const openAttachment = (attachment) => {
     if (attachment.type === 'link') {
       window.open(attachment.url, '_blank')
@@ -200,7 +227,7 @@ const EnhancedCalendar = () => {
       case 'completed':
         return 'bg-green-100 text-green-800'
       case 'in-progress':
-        return 'bg-yellow-100 text-yellow-800'
+        return 'bg-amber-100 text-amber-800'
       case 'planned':
         return 'bg-blue-100 text-blue-800'
       default:
@@ -210,372 +237,193 @@ const EnhancedCalendar = () => {
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'urgent':
-        return 'bg-red-500'
-      case 'high':
-        return 'bg-orange-500'
-      case 'medium':
-        return 'bg-yellow-500'
       case 'low':
         return 'bg-green-500'
+      case 'medium':
+        return 'bg-yellow-500'
+      case 'high':
+        return 'bg-orange-500'
+      case 'urgent':
+        return 'bg-red-500'
       default:
         return 'bg-gray-500'
     }
   }
 
-  const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+  // Function to open a task by ID (to be called from other components)
+  const openTaskFromNotification = (taskId) => {
+    if (!taskId) {
+      console.warn('No task ID provided to openTaskFromNotification');
+      return;
+    }
+    setTaskToView(taskId);
+  }
+
+  // Make this function available to other components through context or props
+  // For now, we'll just export it as a named export
+  window.openTaskFromNotification = openTaskFromNotification;
 
   return (
-    <div className="p-4 md:p-6 pb-20 md:pb-6">
-      <div className="bg-white rounded-lg shadow-sm p-4 md:p-6">
-        {/* Calendar Header */}
-        <div className="flex items-center justify-between mb-4 md:mb-6">
-          <h2 className="text-lg md:text-xl font-semibold text-gray-900">
-            {selectedEmployee ? `${selectedEmployee.name}'s Calendar` : 
-             view === 'year' ? `Year ${selectedYear}` :
-             view === 'month' ? `${selectedYear}` :
-             `${monthNames[selectedMonth]} ${selectedYear}`}
+    <div className="p-6">
+      {/* Header with navigation controls */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+        <div className="flex items-center mb-4 md:mb-0">
+          <h2 className="text-2xl font-bold text-gray-800">
+            {view === 'year' && 'Calendar Overview'}
+            {view === 'month' && `${monthNames[selectedMonth]} ${selectedYear}`}
+            {view === 'days' && `${monthNames[selectedMonth]} ${selectedYear}`}
           </h2>
-          <div className="flex space-x-1 md:space-x-2">
-            {selectedEmployee && (
-              <button
-                onClick={navigateToAllEmployeesCalendar}
-                className="px-2 md:px-3 py-2 text-xs md:text-sm border border-gray-300 rounded-md hover:bg-gray-50 touch-manipulation"
-              >
-                View All Employees
-              </button>
-            )}
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={navigateToToday}
+            className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            Today
+          </button>
+          
+          <div className="flex rounded-md shadow-sm">
             <button
               onClick={goBack}
-              disabled={view === 'year'}
-              className={`p-2 rounded-md border border-gray-300 hover:bg-gray-50 touch-manipulation ${view === 'year' ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <button
-              onClick={navigateToToday}
-              className="px-2 md:px-3 py-2 text-xs md:text-sm border border-gray-300 rounded-md hover:bg-gray-50 touch-manipulation"
+            
+            <select
+              value={selectedYear}
+              onChange={(e) => handleYearSelect(parseInt(e.target.value))}
+              className="px-3 py-2 text-sm border-t border-b border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              Today
-              </button>
+              {generateYears().map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
           </div>
         </div>
+      </div>
 
-        {/* Year Selection View */}
-        {view === 'year' && (
-          <div className="space-y-6">
-            {/* Year Selector */}
-            <div className="flex flex-wrap gap-2 justify-center">
-              {generateYears().map(year => (
-                <button
-                  key={year}
-                  onClick={() => handleYearSelect(year)}
-                  className={`px-3 py-1 rounded-md ${
-                    year === selectedYear
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-100 hover:bg-gray-200'
-                  }`}
-                >
-                  {year}
-                </button>
+      {/* Year View - Show all months */}
+      {view === 'year' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {monthNames.map((month, index) => (
+            <div 
+              key={index} 
+              className="bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => handleYearViewMonthClick(index)}
+            >
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-lg font-medium text-gray-900">{month}</h3>
+                <span className="text-sm text-gray-500">{selectedYear}</span>
+              </div>
+              
+              {/* Mini calendar for the month */}
+              <div className="grid grid-cols-7 gap-1">
+                {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                  <div key={i} className="text-xs text-center text-gray-500 py-1">{day}</div>
+                ))}
+                
+                {generateCalendarDays(selectedYear, index).map((day, i) => (
+                  <div 
+                    key={i} 
+                    className={`text-xs text-center py-1 rounded-full ${
+                      day && hasTasksOnDate(selectedYear, index, day) 
+                        ? 'bg-indigo-100 text-indigo-800 font-medium' 
+                        : day 
+                          ? 'text-gray-700' 
+                          : 'text-gray-300'
+                    }`}
+                  >
+                    {day || ''}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Days View - Show calendar for selected month */}
+      {view === 'days' && (
+        <div className="bg-white rounded-lg shadow">
+          {/* Month header */}
+          <div className="flex items-center justify-center px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900">
+              {monthNames[selectedMonth]} {selectedYear}
+            </h3>
+          </div>
+          
+          {/* Calendar grid */}
+          <div className="p-6">
+            {/* Day headers */}
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+                <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">
+                  {day.substring(0, 3)}
+                </div>
               ))}
             </div>
             
-            {/* All Months with Days - iPhone-like layout (3 per row) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {monthNames.map((month, monthIndex) => {
-                const calendarDays = generateCalendarDays(selectedYear, monthIndex)
-                const daysInMonth = new Date(selectedYear, monthIndex + 1, 0).getDate()
-                
-                // Check if current month has any tasks
-                const hasTasksInMonth = (() => {
-                  for (let day = 1; day <= daysInMonth; day++) {
-                    if (hasTasksOnDate(selectedYear, monthIndex, day)) {
-                      return true
-                    }
-                  }
-                  return false
-                })()
-                
-                // Check if this is the current month and year
-                const isCurrentMonth = selectedYear === today.getFullYear() && monthIndex === today.getMonth()
-                
-                return (
-                  <div 
-                    key={monthIndex} 
-                    className="border border-gray-200 rounded-lg p-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => handleYearViewMonthClick(monthIndex)}
-                  >
-                    {/* Month Header */}
-                    <div className={`text-center py-2 mb-2 rounded-md ${isCurrentMonth ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
-                      <h3 className="font-bold text-sm">{month.substring(0, 3)}</h3>
-                    </div>
-                    
-                    {/* Day Names */}
-                    <div className="grid grid-cols-7 gap-1 mb-1">
-                      {dayNames.map(day => (
-                        <div key={day} className="p-1 text-center text-xs font-medium text-gray-500">
-                          {day}
-                        </div>
-                      ))}
-                    </div>
-                    
-                    {/* Calendar Grid */}
-                    <div className="grid grid-cols-7 gap-1">
-                      {calendarDays.map((day, index) => {
-                        const isToday = day && 
-                          selectedYear === today.getFullYear() && 
-                          monthIndex === today.getMonth() && 
-                          day === today.getDate()
-                        
-                        // Check if this day has tasks
-                        const hasTasks = day && hasTasksOnDate(selectedYear, monthIndex, day)
-                        
-                        return (
-                          <div
-                            key={index}
+            {/* Calendar days */}
+            <div className="grid grid-cols-7 gap-1">
+              {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => (
+                <div 
+                  key={index} 
+                  className={`min-h-24 p-2 border border-gray-200 rounded-lg ${
+                    day ? 'cursor-pointer hover:bg-gray-50' : ''
+                  } ${
+                    day && 
+                    selectedYear === today.getFullYear() && 
+                    selectedMonth === today.getMonth() && 
+                    day === today.getDate()
+                      ? 'bg-blue-50 border-blue-200'
+                      : ''
+                  }`}
+                  onClick={() => day && handleDayClick(day)}
+                >
+                  {day && (
+                    <>
+                      <div className="text-sm font-medium text-gray-900 mb-1">{day}</div>
+                      <div className="space-y-1">
+                        {getTasksForDay(day).slice(0, 3).map(task => (
+                          <div 
+                            key={task.id}
+                            className="text-xs p-1 bg-indigo-100 text-indigo-800 rounded truncate cursor-pointer hover:bg-indigo-200"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleYearViewDayClick(selectedYear, monthIndex, day);
+                              openTaskView(task);
                             }}
-                            className={`
-                              h-6 flex items-center justify-center text-xs cursor-pointer rounded-full
-                              ${day ? 'hover:bg-gray-200' : ''}
-                              ${isToday ? 'bg-blue-500 text-white' : 'text-gray-700'}
-                              ${hasTasks && !isToday ? 'relative font-bold' : ''}
-                            `}
                           >
-                            {day && (
-                              <>
-                                {day}
-                                {hasTasks && !isToday && (
-                                  <div className="absolute bottom-0.5 w-1 h-1 bg-red-500 rounded-full"></div>
-                                )}
-                              </>
-                            )}
+                            {task.title}
                           </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Month View */}
-        {view === 'month' && (
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            {monthNames.map((month, index) => (
-              <button
-                key={month}
-                onClick={() => handleMonthSelect(index)}
-                className={`p-3 rounded-md border text-center ${
-                  index === selectedMonth && selectedYear === today.getFullYear()
-                    ? 'bg-indigo-600 text-white border-indigo-600' 
-                    : 'bg-white border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                <span className="text-sm">{month.substring(0, 3)}</span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Days View */}
-        {view === 'days' && (
-          <>
-            {/* Day Names */}
-            <div className="grid grid-cols-7 gap-1 mb-2">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <div key={day} className="p-1 md:p-2 text-center text-xs md:text-sm font-medium text-gray-500">
-                  <span className="hidden sm:inline">{day}</span>
-                  <span className="sm:hidden">{day.slice(0, 1)}</span>
+                        ))}
+                        {getTasksForDay(day).length > 3 && (
+                          <div className="text-xs text-gray-500">
+                            +{getTasksForDay(day).length - 3} more
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
-
-            {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-1">
-              {generateCalendarDays(selectedYear, selectedMonth).map((day, index) => {
-                const dayTasks = getTasksForDay(day)
-                const isToday = day && 
-                  selectedYear === today.getFullYear() && 
-                  selectedMonth === today.getMonth() && 
-                  day === today.getDate()
-                
-                // Check if this day has tasks (for circle indicator)
-                const hasTasks = day && hasTasksOnDate(selectedYear, selectedMonth, day)
-
-                return (
-                  <div
-                    key={index}
-                    onClick={() => handleDayClick(day)}
-                    className={`
-                      min-h-[60px] md:min-h-[80px] p-1 md:p-2 border border-gray-100 cursor-pointer hover:bg-gray-50 touch-manipulation relative
-                      ${day ? 'bg-white' : 'bg-gray-50'}
-                      ${isToday ? 'bg-blue-50 border-blue-200' : ''}
-                    `}
-                  >
-                    {day && (
-                      <>
-                        {/* Circle indicator for days with tasks */}
-                        {hasTasks && (
-                          <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></div>
-                        )}
-                        <div className={`text-xs md:text-sm font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
-                          {day}
-                        </div>
-                        {dayTasks.length > 0 && (
-                          <div className="mt-1 space-y-1">
-                            {/* Show fewer tasks on mobile */}
-                            {dayTasks.slice(0, window.innerWidth < 768 ? 1 : 2).map(task => (
-                              <div
-                                key={task.id}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  openTaskView(task);
-                                }}
-                                className={`text-xs px-1 md:px-2 py-0.5 md:py-1 rounded truncate cursor-pointer ${
-                                  task.priority === 'high' || task.priority === 'urgent'
-                                    ? 'bg-red-100 text-red-800'
-                                    : task.status === 'completed'
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-blue-100 text-blue-800'
-                                }`}
-                              >
-                                {task.title}
-                              </div>
-                            ))}
-                            {dayTasks.length > (window.innerWidth < 768 ? 1 : 2) && (
-                              <div className="text-xs text-gray-500">
-                                +{dayTasks.length - (window.innerWidth < 768 ? 1 : 2)} more
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
 
       {/* Task Detail Modal */}
       {viewingTask && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">Task Details</h2>
-                <button
-                  onClick={closeTaskView}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">{viewingTask.title}</h3>
-                  <div className="flex items-center mt-1">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(viewingTask.status)}`}>
-                      {viewingTask.status.replace('-', ' ')}
-                    </span>
-                    <div className={`w-2 h-2 rounded-full ml-2 ${getPriorityColor(viewingTask.priority)}`}></div>
-                    <span className="text-xs text-gray-500 ml-1">Priority: {viewingTask.priority}</span>
-                  </div>
-                </div>
-                
-                {viewingTask.description && (
-                  <div>
-                    <p className="text-gray-600">{viewingTask.description}</p>
-                  </div>
-                )}
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-gray-500">Assigned To</p>
-                    <p className="font-medium">{viewingTask.assignedToEmployee?.name || 'Unassigned'}</p>
-                  </div>
-                  
-                  {viewingTask.department && (
-                    <div>
-                      <p className="text-gray-500">Department</p>
-                      <p className="font-medium">{viewingTask.department.name}</p>
-                    </div>
-                  )}
-                  
-                  <div>
-                    <p className="text-gray-500">Due Date</p>
-                    <p className="font-medium">
-                      {viewingTask.due_date 
-                        ? new Date(viewingTask.due_date).toLocaleDateString() 
-                        : 'Not set'}
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-gray-500">Estimated Hours</p>
-                    <p className="font-medium">{viewingTask.estimated_hours || 'Not set'}</p>
-                  </div>
-                </div>
-                
-                {/* Attachments Section */}
-                <div className="border-t border-gray-200 pt-4">
-                  <h3 className="text-lg font-medium text-gray-800 mb-3">Attachments</h3>
-                  
-                  <div className="space-y-3">
-                    {viewingTask.attachments && viewingTask.attachments.length > 0 ? (
-                      viewingTask.attachments.map((attachment) => (
-                        <div key={attachment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
-                          <div className="flex items-center">
-                            {attachment.type === 'link' && (
-                              <svg className="w-5 h-5 text-blue-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                              </svg>
-                            )}
-                            {attachment.type === 'document' && (
-                              <svg className="w-5 h-5 text-yellow-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                            )}
-                            {attachment.type === 'photo' && (
-                              <svg className="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                            )}
-                            <span className="text-sm">{attachment.name}</span>
-                          </div>
-                          <button
-                            onClick={() => openAttachment(attachment)}
-                            className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
-                          >
-                            Open
-                          </button>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-gray-500 text-center py-4">No attachments available</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <TaskDetail 
+          task={viewingTask} 
+          onClose={closeTaskView}
+        />
       )}
     </div>
   )
 }
 
-export default EnhancedCalendar
+export default EnhancedCalendar;

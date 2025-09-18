@@ -1,5 +1,6 @@
 const { Task, Employee, Department, TaskComment } = require('../models');
 const { Op } = require('sequelize');
+const { createNotification } = require('./notificationController');
 
 // Helper function to delete old attachment files
 const deleteOldAttachment = (oldAttachmentPath) => {
@@ -268,6 +269,36 @@ const createTask = async (req, res) => {
       websocketService.notifyTaskCreated(taskWithDetails, req.user);
     }
 
+    // Send notification if task is assigned to someone other than the creator
+    if (assignedToEmployee && assignedToEmployee !== req.user.id) {
+      const assignedEmployee = await Employee.findByPk(assignedToEmployee);
+      if (assignedEmployee) {
+        const notification = await createNotification(
+          assignedToEmployee,
+          req.user.id,
+          'task_assigned',
+          'New Task Assigned',
+          `You have been assigned task: ${task.title}`,
+          task.id,
+          null,
+          priority || 'medium'
+        );
+        
+        // Send WebSocket notification
+        if (websocketService && notification) {
+          websocketService.broadcastNotification(assignedToEmployee, {
+            id: notification.id,
+            type: 'task_assigned',
+            title: 'New Task Assigned',
+            message: `You have been assigned task: ${task.title}`,
+            data: taskWithDetails,
+            priority: priority || 'medium',
+            timestamp: notification.created_at
+          });
+        }
+      }
+    }
+
     res.status(201).json({
       message: 'Task created successfully',
       task: taskWithDetails
@@ -308,6 +339,9 @@ const updateTask = async (req, res) => {
         task.created_by !== req.user.id) {
       return res.status(403).json({ message: 'Access denied' });
     }
+
+    // Store previous assigned_to value for comparison
+    const previousAssignedTo = task.assigned_to;
 
     // Prepare update data
     const updateData = {};
@@ -432,6 +466,134 @@ const updateTask = async (req, res) => {
     const websocketService = req.app.get('websocketService');
     if (websocketService) {
       websocketService.notifyTaskUpdated(updatedTask, req.user);
+    }
+
+    // Send notification if task assignment changed
+    if (updateData.assigned_to !== undefined && updateData.assigned_to !== previousAssignedTo) {
+      // Notify the newly assigned employee
+      if (updateData.assigned_to && updateData.assigned_to !== req.user.id) {
+        const assignedEmployee = await Employee.findByPk(updateData.assigned_to);
+        if (assignedEmployee) {
+          const notification = await createNotification(
+            updateData.assigned_to,
+            req.user.id,
+            'task_assigned',
+            'Task Assigned',
+            `You have been assigned task: ${updatedTask.title}`,
+            updatedTask.id,
+            null,
+            updatedTask.priority
+          );
+          
+          // Send WebSocket notification
+          if (websocketService && notification) {
+            websocketService.broadcastNotification(updateData.assigned_to, {
+              id: notification.id,
+              type: 'task_assigned',
+              title: 'Task Assigned',
+              message: `You have been assigned task: ${updatedTask.title}`,
+              data: updatedTask,
+              priority: updatedTask.priority,
+              timestamp: notification.created_at
+            });
+          }
+        }
+      }
+      
+      // Notify the previously assigned employee if they're different
+      if (previousAssignedTo && previousAssignedTo !== updateData.assigned_to && previousAssignedTo !== req.user.id) {
+        const previousEmployee = await Employee.findByPk(previousAssignedTo);
+        if (previousEmployee) {
+          const notification = await createNotification(
+            previousAssignedTo,
+            req.user.id,
+            'task_unassigned',
+            'Task Unassigned',
+            `You have been unassigned from task: ${updatedTask.title}`,
+            updatedTask.id,
+            null,
+            updatedTask.priority
+          );
+          
+          // Send WebSocket notification
+          if (websocketService && notification) {
+            websocketService.broadcastNotification(previousAssignedTo, {
+              id: notification.id,
+              type: 'task_unassigned',
+              title: 'Task Unassigned',
+              message: `You have been unassigned from task: ${updatedTask.title}`,
+              data: updatedTask,
+              priority: updatedTask.priority,
+              timestamp: notification.created_at
+            });
+          }
+        }
+      }
+    }
+
+    // Send notification if task status changed
+    if (updateData.status !== undefined && updateData.status !== task.status) {
+      // Notify the assigned employee about status change
+      if (updatedTask.assigned_to && updatedTask.assigned_to !== req.user.id) {
+        const assignedEmployee = await Employee.findByPk(updatedTask.assigned_to);
+        if (assignedEmployee) {
+          const notification = await createNotification(
+            updatedTask.assigned_to,
+            req.user.id,
+            'task_status_changed',
+            'Task Status Updated',
+            `Task "${updatedTask.title}" status changed to: ${updatedTask.status}`,
+            updatedTask.id,
+            null,
+            updatedTask.priority
+          );
+          
+          // Send WebSocket notification
+          if (websocketService && notification) {
+            websocketService.broadcastNotification(updatedTask.assigned_to, {
+              id: notification.id,
+              type: 'task_status_changed',
+              title: 'Task Status Updated',
+              message: `Task "${updatedTask.title}" status changed to: ${updatedTask.status}`,
+              data: updatedTask,
+              priority: updatedTask.priority,
+              timestamp: notification.created_at
+            });
+          }
+        }
+      }
+      
+      // Also notify the task creator if they're different from the assigned employee
+      if (updatedTask.created_by && 
+          updatedTask.created_by !== updatedTask.assigned_to && 
+          updatedTask.created_by !== req.user.id) {
+        const creatorEmployee = await Employee.findByPk(updatedTask.created_by);
+        if (creatorEmployee) {
+          const notification = await createNotification(
+            updatedTask.created_by,
+            req.user.id,
+            'task_status_changed',
+            'Task Status Updated',
+            `Task "${updatedTask.title}" status changed to: ${updatedTask.status}`,
+            updatedTask.id,
+            null,
+            updatedTask.priority
+          );
+          
+          // Send WebSocket notification
+          if (websocketService && notification) {
+            websocketService.broadcastNotification(updatedTask.created_by, {
+              id: notification.id,
+              type: 'task_status_changed',
+              title: 'Task Status Updated',
+              message: `Task "${updatedTask.title}" status changed to: ${updatedTask.status}`,
+              data: updatedTask,
+              priority: updatedTask.priority,
+              timestamp: notification.created_at
+            });
+          }
+        }
+      }
     }
 
     res.json({

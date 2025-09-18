@@ -15,11 +15,11 @@ import SearchResults from './SearchResults'
 import FilteredTasksView from './FilteredTasksView'
 import ProjectList from './projects/ProjectList'
 import ProjectTasks from './projects/ProjectTasks'
+import NotificationPage from './NotificationPage'
 
 const MainContent = () => {
   const { currentView, searchTerm, navigateTo, selectedProject } = useApp()
   const { isAdmin } = useAuth()
-  const appContext = useApp();
 
   const renderContent = () => {
     switch (currentView) {
@@ -68,7 +68,11 @@ const MainContent = () => {
         return <SearchResults onBack={() => navigateTo('calendar')} />
       case 'filtered-tasks':
         return <FilteredTasksView />
+      case 'notifications':
+        return <NotificationPage />
       case 'tasks':
+        // Always use the enhanced calendar with 3-step navigation
+        return <EnhancedCalendar />
       default:
         // Always use the enhanced calendar with 3-step navigation
         return <EnhancedCalendar />

@@ -38,6 +38,12 @@ const Sidebar = () => {
       onClick: () => navigateTo('calendar')
     },
     { 
+      name: 'Notifications', 
+      key: 'notifications',
+      icon: 'bell', 
+      onClick: () => navigateTo('notifications')
+    },
+    { 
       name: 'Reports', 
       key: 'reports',
       icon: 'chart-bar', 
@@ -57,6 +63,12 @@ const Sidebar = () => {
       key: 'projects',
       icon: 'folder', 
       onClick: () => navigateTo('projects')
+    },
+    { 
+      name: 'Notifications', 
+      key: 'notifications',
+      icon: 'bell', 
+      onClick: () => navigateTo('notifications')
     },
     { 
       name: 'Profile', 
@@ -102,9 +114,14 @@ const Sidebar = () => {
           <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
         </svg>
       ),
+      'bell': (
+        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+        </svg>
+      ),
       'chart-bar': (
         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+          <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" />
         </svg>
       ),
       'user': (
